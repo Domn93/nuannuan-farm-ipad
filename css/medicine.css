@@ -1,0 +1,25 @@
+#medicine-list {
+  list-style: none;
+  padding: 0;
+}
+#medicine-list li {
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px solid #dde5d1;
+  border-radius: 14px;
+  background: #f7f8ef;
+}
+#medicine-list button {
+  margin: 4px 8px 4px 0;
+  padding: 9px 12px;
+  border: 1px solid #cdd9bd;
+  border-radius: 12px;
+  background: #fffdf6;
+  color: #586c43;
+  font: inherit;
+  cursor: pointer;
+}
+#medicine-list button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

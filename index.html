@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>暖暖的小农场</title>
+    <link rel="stylesheet" href="css/style.css?v=full-audit-69" />
+    <link rel="stylesheet" href="css/travel.css?v=full-audit-69" />
+    <link rel="stylesheet" href="css/fridge.css?v=fridge-65" />
+    <link rel="stylesheet" href="css/medicine.css?v=medicine-67" />
+  </head>
+  <body>
+    <main class="farm-app">
+      <header>
+        <div class="brand">
+          <span class="brand-icon">✿</span>
+          <div>
+            <p class="eyebrow">A LITTLE FARM, A LITTLE JOY</p>
+            <h1>暖暖的小农场<span>自由漫步</span></h1>
+          </div>
+        </div>
+        <div class="header-right">
+          <span class="weather">☀ <span>晴天 · 微风</span></span
+          ><select id="music-track" aria-label="选择背景音乐">
+            <option value="meadow">田园晨光</option>
+            <option value="breeze">微风小步舞</option>
+            <option value="moon">月光摇篮曲</option></select
+          ><button
+            id="sound"
+            class="icon-button"
+            aria-label="开启背景音乐"
+            title="点击游戏后播放背景音乐"
+          >
+            ♫</button
+          ><button id="help" class="icon-button" aria-label="操作说明" title="操作说明">?</button>
+        </div>
+      </header>
+      <button
+        id="toggle-activities"
+        class="activities-toggle"
+        aria-expanded="false"
+        aria-controls="activity-drawer"
+      >
+        ☰ 活动
+      </button>
+      <div class="play-layout">
+        <div class="play-area">
+          <section class="game-shell" aria-label="可操作的农场场景">
+            <canvas
+              id="game"
+              width="1536"
+              height="1024"
+              tabindex="0"
+              aria-label="农场游戏，方向键或 WASD 移动，E 互动，Shift 奔跑"
+            ></canvas>
+            <div id="loading" class="loading">
+              <span>✿</span><strong>农场正在醒来…</strong>
+              <p>草地、阳光，还有等你的小伙伴</p>
+            </div>
+            <div class="scene-badge"><span class="live-dot"></span> 慢慢走，今天没有要赶的路</div>
+            <div id="toast" class="toast" role="status" aria-live="polite">
+              点击草地，开始你的农场散步吧
+            </div>
+            <button id="interact" class="interact" hidden>互动 <kbd>E</kbd></button>
+            <button id="pump-swing" class="interact pump-swing" hidden>
+              按住用力荡 <kbd>空格</kbd>
+            </button>
+            <section id="clothes-panel" class="clothes-panel" aria-label="衣柜换衣服" hidden>
+              <strong>暖暖的衣柜</strong>
+              <p>挑一套今天想穿的衣服</p>
+              <button data-outfit="pink" aria-pressed="true">🌸 拿出并穿上粉色格纹裙</button>
+              <button data-outfit="blue" aria-pressed="false">🩵 拿出并穿上蓝色格纹裙</button>
+              <button data-outfit="pajamas" aria-pressed="false">🌙 拿出并穿上兔兔睡衣</button>
+              <button data-outfit="robe" aria-pressed="false">🛁 拿出并穿上浴袍</button>
+              <button data-outfit="down" aria-pressed="false">❄ 拿出并穿上羽绒服</button>
+              <button data-room="shoeRack">🥿 去鞋架拿拖鞋</button>
+              <button id="close-clothes">关上衣柜</button>
+            </section>
+            <section id="kitchen-panel" class="clothes-panel" aria-label="选择要做的饭" hidden>
+              <strong>今天做什么？</strong>
+              <p>食材可用背包或冰箱里的；做好后端到饭桌</p>
+              <button data-recipe="vegetables">🍚 蔬菜饭</button
+              ><button data-recipe="mushroom">🍄 蘑菇汤（1 个蘑菇）</button
+              ><button data-recipe="fish">🐟 煎鱼（1 条鱼）</button
+              ><button data-recipe="meat">🥩 肉菜饭（1 份肉）</button
+              ><button id="close-kitchen">收起菜单</button>
+            </section>
+            <div class="dpad" aria-label="触屏方向控制">
+              <button data-key="ArrowUp" aria-label="向上走">↑</button
+              ><button data-key="ArrowLeft" aria-label="向左走">←</button
+              ><button data-key="ArrowDown" aria-label="向下走">↓</button
+              ><button data-key="ArrowRight" aria-label="向右走">→</button>
+            </div>
+          </section>
+          <footer>
+            <div class="instructions">
+              <span class="key-group"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span
+              ><span>或方向键移动</span><i></i><span>点击地面前往</span><i></i
+              ><span><kbd>Shift</kbd> 小跑</span>
+            </div>
+            <span class="footer-note">把平凡的一天，过成喜欢的样子。</span>
+          </footer>
+        </div>
+        <aside id="activity-drawer" aria-label="活动菜单" hidden>
+          <div class="drawer-heading">
+            <h2>想做点什么？</h2>
+            <button id="close-activities" aria-label="收起活动菜单">×</button>
+          </div>
+          <nav class="travel-bar" aria-label="进出家门">
+            <span id="scene-name">🌿 农场</span><button id="go-house">⌂ 开门回家</button
+            ><button id="go-farm" hidden>🌿 返回农场</button>
+            <span id="farm-clock">☀ 09:00 · 白天</span
+            ><select id="time-of-day" aria-label="切换农场时间">
+              <option value="9">白天</option>
+              <option value="13">中午</option>
+              <option value="18">夜晚</option>
+              <option value="23">深夜</option>
+            </select>
+            <select id="farm-season" aria-label="选择季节">
+              <option value="0">春天</option>
+              <option value="1">夏天</option>
+              <option value="2">秋天</option>
+              <option value="3">冬天</option>
+            </select>
+            <span id="season-progress">春天 · 第1天，共4天</span>
+            <select id="farm-weather" aria-label="选择天气">
+              <option value="sunny">晴天</option>
+              <option value="cloudy">多云</option>
+              <option value="rain">下雨</option>
+              <option value="wind">微风</option>
+              <option value="snow">下雪</option>
+              <option value="hail">冰雹</option>
+            </select>
+            <span id="health-status" hidden></span>
+            <span id="pet-health-status" hidden></span>
+            <span id="room-hint">沿着小路去探索吧</span
+            ><strong id="inventory" class="inventory">🌼 0　🐟 0　♡ 0</strong>
+            <button id="open-backpack">🎒 背包</button>
+            <button id="open-guide">📖 图鉴</button>
+            <button id="open-medicine" hidden>💊 药盒和疗程</button>
+          </nav>
+          <section class="control-deck" aria-label="今天想玩什么">
+            <div id="farm-buttons" class="control-group">
+              <h2>🌿 农场活动</h2>
+              <div class="control-grid">
+                <button data-place="pen">⌂ 进入养殖场</button
+                ><button data-place="animals">🌾 给动物喂食</button
+                ><button data-place="pond">🐟 池塘钓鱼</button>
+                <button id="open-farm-care">♡ 抚摸动物和感情度</button>
+                <button id="herd-cat" hidden>🐈 带鸡去放牧</button>
+                <button id="herd-dog" hidden>🐕 带大动物放牧</button>
+                <button id="shelter-animals">☂ 带回避雨</button>
+                <button data-place="flowers">🌼 采花</button><button id="ride-horse">🐴 骑马</button
+                ><button id="go-swing" data-place="swing">♧ 荡秋千</button>
+                <button data-place="travel">🧭 走出农场</button>
+              </div>
+            </div>
+            <div id="room-buttons" class="control-group" hidden>
+              <h2>⌂ 屋内活动</h2>
+              <div class="control-grid">
+                <button data-room="bed">🛏 睡觉</button
+                ><button data-room="wardrobe">♧ 卧室左侧 · 衣柜换衣</button
+                ><button data-room="tv">📺 看电视</button>
+                <button data-room="bathroom">🫧 洗手</button
+                ><button data-room="toilet">🚽 使用马桶</button
+                ><button data-room="balcony">☀ 去阳台</button>
+                <button data-room="bedroom">☾ 去卧室</button
+                ><button data-room="petFood">🥣 添猫粮狗粮</button>
+                <button data-room="balconyDoor">🚪 开关阳台门</button>
+                <button data-room="curtains">🪟 开关窗帘</button>
+                <button data-room="nap">☀ 睡午觉</button>
+                <button data-room="alarm">⏰ 床头闹钟</button>
+                <button data-room="bath">🛁 洗澡</button>
+                <button data-room="sofa">🛋 坐沙发</button
+                ><button data-room="kitchen">🍳 厨房做饭</button
+                ><button data-room="fridge">❄ 厨房冰箱</button
+                ><button data-room="dining">🍽 饭桌吃饭</button>
+                <button data-room="shoeRack">👟 鞋架和袜子</button>
+                <button id="water-plants">🌱 照顾盆栽</button>
+                <button data-room="airConditioner">❄ 开关空调</button>
+              </div>
+            </div>
+            <div id="explore-buttons" class="control-group" hidden>
+              <h2 id="explore-title">往哪里走？</h2>
+              <div id="explore-grid" class="control-grid"></div>
+            </div>
+            <div class="control-group">
+              <h2>🐾 小伙伴</h2>
+              <div class="control-grid pet-grid">
+                <button id="walk-dog" aria-pressed="false">🐕 遛萨摩耶</button
+                ><button data-play-pet="dog">⚾ 和狗玩球</button
+                ><button data-play-pet="cat">🧶 和猫玩球</button>
+                <button id="talk-nuannuan">💬 和暖暖聊聊</button>
+                <button id="open-pet-care">🫶 抱抱和照料</button>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+    <section id="friend-panel" class="friend-panel" aria-label="和朋友聊天" hidden>
+      <button id="close-friend" aria-label="结束聊天">×</button>
+      <h2 id="friend-title">交朋友</h2>
+      <p id="friend-line"></p>
+      <button data-friend-action="hello">👋 打个招呼</button
+      ><button data-friend-action="flower">🌼 送一朵花</button
+      ><button data-friend-action="food">🥐 分享一份食物</button>
+    </section>
+    <dialog id="farm-care-dialog">
+      <button id="close-farm-care" aria-label="关闭动物照料">×</button>
+      <h2>♡ 和农场动物亲近</h2>
+      <p>轻轻摸摸它们，感情度会增加。长时间不陪伴，或下雨忘了带回棚里，感情度会慢慢下降。</p>
+      <ul id="farm-care-list"></ul>
+    </dialog>
+    <dialog id="backpack-dialog">
+      <button id="close-backpack" aria-label="关闭背包">×</button>
+      <h2>🎒 暖暖的背包</h2>
+      <p>花朵、小鱼、食物、蘑菇、虫子、木材和树叶都放在这里。</p>
+      <ul id="bag-items"></ul>
+      <button id="eat-food">吃一份食物</button>
+      <p>新鲜食材可存进家里的冰箱；取出的冰淇淋和冰沙可以到饭桌坐下吃。</p>
+      <p>物品在本次游戏里保留，刷新后重新开始。</p>
+    </dialog>
+    <dialog id="guide-dialog" class="collection-dialog">
+      <button id="close-guide" aria-label="关闭图鉴">×</button>
+      <h2>📖 暖暖的图鉴</h2>
+      <p>老鼠、鱼、蘑菇、大树、树叶和动物，发现与捕获记录会自动保存。</p>
+      <div id="guide-items"></div>
+    </dialog>
+    <dialog id="medicine-dialog" class="collection-dialog" aria-label="药盒和疗程">
+      <button id="close-medicine" aria-label="收好药盒">×</button>
+      <h2>💊 药盒和疗程</h2>
+      <p>这是游戏里的虚构药水。医生开药后，每天用两种，完成三天疗程再恢复；同一天重复用药不会更快。</p>
+      <ul id="medicine-list"></ul>
+      <p>猫狗用药要走近它们，等它们醒着再喂。没完成的疗程会保留，不会过一天就自动好。</p>
+    </dialog>
+    <dialog id="fridge-dialog" class="collection-dialog" aria-label="厨房冰箱">
+      <button id="close-fridge" aria-label="关好冰箱门">×</button>
+      <h2>❄ 厨房冰箱</h2>
+      <p>上层放冷冻肉和鱼，下层放冰淇淋、冰沙。做饭可直接用冰箱里的食材。</p>
+      <ul id="fridge-items"></ul>
+      <p id="fridge-freshness"></p>
+      <button id="discard-spoiled-food">清理背包里变质的食物</button>
+    </dialog>
+    <dialog id="pet-care-dialog" class="collection-dialog">
+      <button id="close-pet-care" aria-label="收起宠物照料">×</button>
+      <h2>🫶 照料小伙伴</h2>
+      <p>猫狗可抱、可背；小马可以骑出去。羊、猪、牛和鸡留在养殖场，可进去喂食、抚摸。</p>
+      <label for="care-pet">选一个小伙伴</label
+      ><select id="care-pet">
+        <option value="cat">布偶猫</option>
+        <option value="dog">萨摩耶</option>
+        <option value="lamb">小羊</option>
+        <option value="chicken">小鸡</option>
+        <option value="pig">小猪</option>
+        <option value="cow">小牛</option>
+        <option value="horse">小马</option>
+      </select>
+      <div class="choice-grid">
+        <button data-pet-care="hold">抱在怀里</button><button data-pet-care="back">背在背上</button
+        ><button data-pet-care="bed">让它上床</button><button data-pet-care="wash">给它洗澡</button
+        ><button data-pet-care="release">放下来 / 下床</button>
+        <button data-pet-care="push">推着一起走</button
+        ><button data-pet-care="ride">骑着去散步</button>
+      </div>
+    </dialog>
+    <dialog id="alarm-dialog" class="collection-dialog">
+      <button id="close-alarm" aria-label="收起闹钟">×</button>
+      <h2>⏰ 床头闹钟</h2>
+      <label for="nap-duration">午觉睡多久？</label>
+      <select id="nap-duration" aria-label="午睡时长">
+        <option value="0.5">半小时午觉（游戏里约 15 秒）</option>
+        <option value="1">一小时午觉（游戏里约 30 秒）</option>
+        <option value="1.5">一个半小时午觉（游戏里约 45 秒）</option>
+      </select>
+      <label for="morning-alarm">早上几点响？</label>
+      <select id="morning-alarm" aria-label="早上闹钟时间">
+        <option value="7">早上 7 点</option>
+        <option value="8">早上 8 点</option>
+        <option value="9">早上 9 点</option>
+      </select>
+      <p>睡前自动上好闹钟，到点叮铃铃响。午觉醒来仍是下午。开启声音就能听见铃声。</p>
+      <button id="save-alarm">设好闹钟</button>
+    </dialog>
+    <dialog id="fish-dialog" class="collection-dialog">
+      <h2>🐟 看看刚钓上的鱼</h2>
+      <canvas
+        id="caught-fish-picture"
+        width="360"
+        height="240"
+        role="img"
+        aria-label="刚钓上来的鱼"
+        style="
+          display: block;
+          width: 100%;
+          max-width: 360px;
+          height: auto;
+          margin: auto;
+        "
+      ></canvas>
+      <p id="caught-fish-name"></p>
+      <p id="caught-fish-description">已经放进背包，可以慢慢看清它的样子。</p>
+      <button id="close-fish">看好了，继续玩</button>
+    </dialog>
+    <dialog id="shoes-dialog" class="collection-dialog">
+      <button id="close-shoes" aria-label="收起鞋架">×</button>
+      <h2>👟 暖暖的鞋架</h2>
+      <p>在家穿拖鞋。选好的外出鞋，会在出门时换上。</p>
+      <h3>出门穿什么？</h3>
+      <div id="shoe-options" class="choice-grid"></div>
+      <h3>家里的拖鞋</h3>
+      <div id="slipper-options" class="choice-grid"></div>
+      <h3>挑一双袜子</h3>
+      <div id="sock-options" class="choice-grid"></div>
+      <p id="shoe-summary" role="status"></p>
+    </dialog>
+    <dialog id="help-dialog">
+      <button id="close-help" aria-label="关闭说明">×</button><span class="dialog-flower">✿</span>
+      <h2>欢迎来到暖暖的小农场</h2>
+      <p>方向键 / WASD 移动，Shift 小跑，E 互动。<br />点击地面也可以自动绕路前往。</p>
+      <p>
+        在桥上抛竿后等浮漂，鱼会先试探鱼饵。<br />浮漂沉下去时按 E 提竿，再按住 E 收线。<br />拉力变红就松开一下，也可以按住屏幕按钮。<br />走开或按
+        Esc 可以收起鱼竿。
+      </p>
+      <p>
+        树、房子、围栏和动物不能攀爬。<br />点「骑马」上马，E 下马。<br />点「开门回家」探索房间，客厅可以看电视。
+      </p>
+      <p>第一次操作后播放舒缓音乐和轻流水声。<br />右上角音符可以静音。</p>
+      <button id="start-playing">去散步吧 →</button>
+    </dialog>
+    <!-- 普通脚本共享游戏状态：保留以下加载顺序；game.js 在功能模块后启动。 -->
+    <script src="js/music.js?v=voice-24"></script>
+    <script src="js/world.js?v=texture-audit-75"></script>
+    <script src="js/farm.js?v=texture-audit-76"></script>
+    <script src="js/fishing.js?v=fish-species-35"></script>
+    <script src="js/pets.js?v=texture-audit-75"></script>
+    <script src="js/swing.js?v=art-3"></script>
+    <script src="js/toilet.js?v=bathroom-align-42"></script>
+    <script src="js/home.js?v=texture-audit-75"></script>
+    <script src="js/play.js?v=pet-plants-58"></script>
+    <script src="js/night.js?v=texture-audit-75"></script>
+    <script src="js/seasons.js?v=logic-review-72"></script>
+    <script src="js/meteor.js?v=buildings-48"></script>
+    <script src="js/barn.js?v=barn-45"></script>
+    <script src="js/fireflies.js?v=pet-follow-44"></script>
+    <script src="js/herding.js?v=seasonal-friends-63"></script>
+    <script src="js/voices.js?v=pet-nearby-71"></script>
+    <script src="js/animal-care.js?v=pet-plants-58"></script>
+    <script src="js/explore.js?v=texture-audit-75"></script>
+    <script src="js/seasonal-friends.js?v=seasonal-friends-63"></script>
+    <script src="js/forest-adventure.js?v=guide-52"></script>
+    <script src="js/market.js?v=texture-audit-76"></script>
+    <script src="js/bath.js?v=bathrobe-37"></script>
+    <script src="js/living.js?v=texture-audit-75"></script>
+    <script src="js/belongings.js?v=texture-audit-75"></script>
+    <script src="js/pet-care.js?v=texture-audit-75"></script>
+    <script src="js/scenery.js?v=texture-audit-75"></script>
+    <script src="js/buildings.js?v=texture-audit-75"></script>
+    <script src="js/pet-health.js?v=texture-audit-75"></script>
+    <script src="js/discoveries.js?v=guide-52"></script>
+    <script src="js/animal-travel.js?v=logic-review-72"></script>
+    <script src="js/late-sleep.js?v=logic-review-72"></script>
+    <script src="js/plants.js?v=fridge-65"></script>
+    <script src="js/pet-eating.js?v=pet-plants-58"></script>
+    <script src="js/air-conditioner.js?v=season-days-61"></script>
+    <script src="js/fridge.js?v=logic-review-72"></script>
+    <script src="js/medicine.js?v=logic-review-72"></script>
+    <script src="js/game.js?v=texture-audit-76"></script>
+    <script src="js/drawer.js?v=art-3"></script>
+  </body>
+</html>
