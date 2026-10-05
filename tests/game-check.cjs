@@ -23,6 +23,7 @@ function makeContext() {
   }, {
     get(target, key) {
       return target[key] || ((...args) => {
+        if (key === 'drawImage') assert.ok(args[0], 'Canvas 图片源必须存在');
         if (['drawImage', 'moveTo', 'lineTo', 'rect'].includes(key)) events.push([key, ...args]);
       });
     }
@@ -87,9 +88,9 @@ function check(name, body) {
   console.log('PASS ' + name);
 }
 
-check('11 张地图的入口、互动路径和逐帧运行', `
+check('12 张地图的入口、互动路径和逐帧运行', `
   for (const map of ['farm','house','junction','forest','city','friends','barn',
-    'hospital','petHospital','bakery','villageHouse']) {
+    'hospital','petHospital','bakery','villageHouse','boardingHouse']) {
     changeScene(map);
     penGate.open=true; balconyDoor.open=true; rebuildGrid();
     assert.ok(canWalk(player.x,player.y), map+' 出生点');
@@ -102,6 +103,99 @@ check('11 张地图的入口、互动路径和逐帧运行', `
       update(1/60); draw(); events.length=0;
     }
   }
+`);
+
+check('漏服一种药可补齐，药袋与冰箱不重复扣库存', `
+  for (const location of ['pouch','fridge']) {
+    farmTime.day=0; busyUntil=0; changeScene('house');
+    nuannuanHealth.cold=true; prescribeMedicine(nuannuanHealth);
+    const course=nuannuanHealth.course;
+    assert.equal(course.location,'pouch','处方先交到药袋');
+    if(location==='fridge') {
+      player.x=places.fridge.x; player.y=places.fridge.y; openFridge();
+      storeMedicineInFridge('nuannuan'); assert.equal(course.location,'fridge');
+    }
+    function dose(index) {
+      busyUntil=0;
+      if(location==='fridge') collectMedicineFromFridge('nuannuan',index);
+      takeGameMedicine('nuannuan',index); clock+=2;
+    }
+    dose(0); dose(0); assert.equal(course.remaining[0],2);
+    for(const day of [1,2]) {farmTime.day=day; dose(0); dose(1);}
+    assert.equal(course.doseCounts[0],3); assert.equal(course.doseCounts[1],2);
+    assert.equal(course.remaining[0],0); assert.equal(nuannuanHealth.cold,true);
+    farmTime.day=3; dose(0); dose(1);
+    assert.equal(nuannuanHealth.course,null); assert.equal(nuannuanHealth.cold,false);
+    assert.equal(course.remaining.reduce((sum,n)=>sum+n,0),0);
+    fridge.open=false; document.querySelector('#fridge-dialog').close();
+  }
+  farmTime.day=10; prescribeMedicine(nuannuanHealth);
+  player.x=places.fridge.x; player.y=places.fridge.y; busyUntil=0; openFridge();
+  storeMedicineInFridge('nuannuan'); collectMedicineFromFridge('nuannuan',1);
+  farmTime.day++; currentMedicineDay(nuannuanHealth.course);
+  collectMedicineFromFridge('nuannuan',1);
+  assert.equal(nuannuanHealth.course.remaining[1],2,'昨天未用的一瓶仍在药袋');
+  takeGameMedicine('nuannuan',1);
+  assert.equal(nuannuanHealth.course.doseCounts[1],1);
+`);
+
+check('食材保持品类，蔬菜饭不能凭空制作', `
+  changeScene('city'); pocket.coins=5;
+  interactMarket('picnic'); clock+=1.4; updateMarket(0); busyUntil=0;
+  assert.equal(pocket.bread,1); assert.equal(pocket.food,0); assert.equal(pocket.coins,3);
+  interactMarket('marketFruit'); clock+=1.4; updateMarket(0); busyUntil=0;
+  assert.equal(pocket.fruit,2); assert.equal(pocket.vegetables,1); assert.equal(pocket.food,0);
+  changeScene('house'); player.x=places.kitchen.x; player.y=places.kitchen.y;
+  pocket.vegetables=0; fridge.stock.vegetables=0;
+  beginLivingAction('cook',recipes.vegetables); assert.equal(livingSession,null);
+  pocket.vegetables=1; beginLivingAction('cook',recipes.vegetables);
+  assert.ok(livingSession); assert.equal(pocket.vegetables,0);
+  stopLivingAction(); assert.equal(pocket.vegetables,1,'取消烹饪返还原料');
+  beginLivingAction('eat'); assert.equal(livingSession.mealName,'面包');
+  assert.equal(pocket.bread,0); assert.equal(pocket.fruit,2);
+`);
+
+check('外出返回先走到出口，再经过岔路口回农场', `
+  farmTime.hour=9;
+  const goBack=document.querySelector('#go-farm').listeners.click;
+  for (const map of ['forest','city','friends']) {
+    busyUntil=0; changeScene(map); player.y=700;
+    goBack(); assert.equal(scene,map); assert.equal(pendingPlace,'junction');
+    assert.ok(route.length,'点击返回仍要行走');
+    interactExploration('junction'); assert.equal(scene,'junction');
+    assert.equal(player.y,map==='friends'?510:560);
+    goBack(); assert.equal(scene,'junction'); assert.equal(pendingPlace,'returnFarm');
+    interactExploration('returnFarm'); assert.equal(scene,'farm');
+    assert.equal(player.x,690); assert.equal(player.y,835);
+  }
+`);
+
+check('骑马不能进入人物可走的窄楼梯，广场仍可通行', `
+  changeScene('city'); riding=false;
+  assert.ok(canWalk(938,340),'人物可以走寄养所楼梯');
+  riding=true; assert.equal(canWalk(938,340),false,'马的四蹄宽度超过楼梯');
+  assert.ok(canWalk(900,700),'宽广场可骑乘');
+  riding=false; changeScene('friends');
+  assert.ok(canWalk(1410,330),'人物可以走村舍门前窄路');
+  riding=true; assert.equal(canWalk(1410,330),false);
+`);
+
+check('去右村舍的寻路不会被路过的城市出口抢走', `
+  changeScene('friends'); player.x=1335; player.y=630;
+  pendingPlace='villageDoorRight'; updateExploration(0);
+  assert.equal(scene,'friends');
+  walkTo(places.villageDoorRight,'villageDoorRight');
+  for(let frame=0;frame<2400&&scene==='friends';frame++) update(1/60);
+  assert.equal(scene,'villageHouse');
+  interactBuilding('buildingExit');
+  for(let frame=0;frame<180;frame++) update(1/60);
+  assert.equal(scene,'friends');
+  document.querySelector('#go-farm').listeners.click();
+  for(let frame=0;frame<2400&&scene==='friends';frame++) update(1/60);
+  assert.equal(scene,'junction','离开右村舍后也能按原目标返回岔路口');
+  changeScene('friends');
+  pendingPlace=null; busyUntil=0; player.x=1335; player.y=630; updateExploration(0);
+  assert.equal(scene,'city','主动走到城市出口仍可切图');
 `);
 
 check('医生和兽医的三日疗程与守卫', `
@@ -149,6 +243,19 @@ check('医生和兽医的三日疗程与守卫', `
   assert.equal(nuannuanHealth.course.taken.length,0);
 `);
 
+check('健康的人和猫接受检查时不会被强制变成病人', `
+  changeScene('hospital'); interactBuilding('doctor');
+  clock+=4.1; updateBuildingHealth(0);
+  assert.equal(nuannuanHealth.cold,false); assert.equal(nuannuanHealth.course,undefined);
+  assert.equal(interactBuilding('doctorTrial'),false);
+  changeScene('petHospital'); cat.scene='petHospital';
+  cat.x=825; cat.y=535; cat.sleeping=false; busyUntil=0;
+  startPetVetVisit('cat'); updatePetHealth(0);
+  clock+=4.1; updatePetHealth(0);
+  assert.equal(petHealth.cat.sick,false); assert.equal(petHealth.cat.course,undefined);
+  assert.equal(interactBuilding('vetCatTrial'),false);
+`);
+
 check('冰箱数量守恒、独立批次保鲜和烹饪退款', `
   openFridge(); assert.equal(fridge.open,false);
   changeScene('house'); player.x=places.fridge.x; player.y=places.fridge.y;
@@ -185,7 +292,7 @@ check('冰箱数量守恒、独立批次保鲜和烹饪退款', `
   assert.equal(diningMeal.servings,1); assert.equal(pocket.food,1);
 `);
 
-check('围栏内成长与走动、骑马保持蓝衣服', `
+check('围栏与草地动物成长走动、骑马保持蓝衣服', `
   changeScene('farm'); penGate.open=true;
   for (const kind of ['lamb','pig','cow','chicken']) {
     requestAnimalTravel(kind,['pig','cow'].includes(kind)?'push':'hold');
@@ -198,8 +305,11 @@ check('围栏内成长与走动、骑马保持蓝衣服', `
     for (const animal of animals) {
       if (animal.cell===3) continue;
       const position=farmAnimalPosition(animal);
-      assert.ok(animalFitsPen(animal,position));
-      assert.ok(animalFitsPen(animal,keepFarmAnimalPoseInsidePen(animal,animalPose(animal))));
+      if (animal.grazing) {
+        const area=animalPastureRange(animal);
+        assert.ok(position.x>=area.minX&&position.x<=area.maxX&&position.y>=area.minY&&position.y<=area.maxY);
+      } else assert.ok(animalFitsPen(animal,position));
+      assert.ok(animal.grazing||animalFitsPen(animal,keepFarmAnimalPoseInsidePen(animal,animalPose(animal))));
       if (distance(original[animal.cell],position)>10) moved.add(animal.cell);
     }
   }
@@ -207,12 +317,18 @@ check('围栏内成长与走动、骑马保持蓝衣服', `
   for (const animal of animals) if (animal.cell!==3) animal.targetGrowth=1.25;
   for (let frame=0;frame<300;frame++) {
     clock+=.1; updateFarm(.1);
-    for (const animal of animals) if (animal.cell!==3)
-      assert.ok(animalFitsPen(animal,farmAnimalPosition(animal)));
+    for (const animal of animals) if (animal.cell!==3) {
+      if (animal.grazing) {
+        const area=animalPastureRange(animal), position=farmAnimalPosition(animal);
+        assert.ok(position.x>=area.minX&&position.x<=area.maxX&&position.y>=area.minY&&position.y<=area.maxY);
+      } else assert.ok(animalFitsPen(animal,farmAnimalPosition(animal)));
+    }
   }
   outfit='blue'; busyUntil=0;
+  updateAnimalTravel(0);
   player.x=places.horse.x; player.y=places.horse.y;
   mountHorse(); assert.equal(riding,true); clock=mountStarted+1;
+  updateAnimalTravel(0);
   for (let frame=0;frame<4;frame++) {
     player.walking=true; player.step=frame; events.length=0; draw();
     assert.equal(events.filter(event=>event[1]===blueRider).length,1);
@@ -220,8 +336,107 @@ check('围栏内成长与走动、骑马保持蓝衣服', `
     assert.equal(outfit,'blue');
   }
   changeScene('junction'); events.length=0; draw();
-  assert.equal(events.filter(event=>event[1]===blueRider).length,1);
+  assert.equal(events.filter(event=>event[1]===idleRider).length,1);
   dismountHorse(); assert.equal(riding,false); assert.equal(outfit,'blue');
+`);
+
+check('走到真实马旁上马、经门出栏，下马保留马的脚位', `
+  changeScene('farm'); farmTime.hour=9; player.x=1007; player.y=500;
+  for(const animal of animals) animal.nextWander=Infinity;
+  const horse=animals[3], original={...farmAnimalPosition(horse)};
+  mountHorse(); assert.equal(riding,false,'不能在家门口远程召马');
+  requestAnimalTravel('horse','ride');
+  for(let frame=0;frame<3000&&!riding;frame++) update(1/60);
+  assert.ok(penGate.open,'从真实围栏门走进去');
+  assert.ok(riding,'人物实际到达马旁后上马');
+  assert.ok(distance(player,original)<1,'上马动画从原马脚位开始');
+  clock=mountStarted+.4; updateAnimalTravel(0);
+  assert.ok(distance(player,original)<60,'上马中途只在原位附近移动');
+  clock=mountStarted+1; updateAnimalTravel(0);
+  assert.equal(mountSession,null); assert.ok(canWalk(player.x,player.y));
+  walkTo({x:690,y:700});
+  for(let frame=0;frame<3000&&route.length;frame++) update(1/60);
+  assert.equal(scene,'farm'); assert.ok(riding);
+  assert.ok(player.y>610,'骑马穿过实际门洞到达外侧草地');
+  const hoof={x:player.x,y:player.y};
+  dismountHorse(); assert.equal(riding,false);
+  assert.equal(horse.visitScene,'farm');
+  assert.equal(horse.visitPosition.x,hoof.x); assert.equal(horse.visitPosition.y,hoof.y);
+  assert.ok(distance(player,hoof)>10&&distance(player,hoof)<90);
+  assert.ok(canWalk(player.x,player.y),'下马人物落在旁边安全地面');
+  updateAnimalTravel(0); assert.ok(distance(places.horse,hoof)<90);
+`);
+
+check('动物正常闲逛后上马目标等待，起步路径使用当前动物位置', `
+  let rngState=7;
+  Math.random=()=>((rngState=Math.imul(rngState,1664525)+1013904223|0)>>>0)/4294967296;
+  changeScene('farm'); farmTime.hour=9;
+  for(let frame=0;frame<900;frame++) update(1/60);
+  const original={...farmAnimalPosition(animals[3])};
+  requestAnimalTravel('horse','ride');
+  for(let frame=0;frame<3000&&!riding;frame++) {
+    update(1/60);
+    assert.ok(distance(farmAnimalPosition(animals[3]),original)<.01,'马在原地等待人物经过门走来');
+  }
+  assert.ok(riding,'正常闲逛后仍能走到真实马旁上马');
+  clock=mountStarted+1; updateAnimalTravel(0);
+  walkTo({x:690,y:700}); assert.ok(route.length,'出栏采用当前动物位置，不能沿用旧网格拒绝起步');
+  for(let frame=0;frame<3000&&route.length;frame++) update(1/60);
+  assert.ok(player.y>610,'其他动物继续正常闲逛时仍能经门出栏');
+`);
+
+check('奶牛堵门时上马提示等待，让开后可重试，不传送马', `
+  let rngState=29;
+  Math.random=()=>((rngState=Math.imul(rngState,1664525)+1013904223|0)>>>0)/4294967296;
+  changeScene('farm'); farmTime.hour=9;
+  for(let frame=0;frame<900;frame++) update(1/60);
+  const horse=animals[3], original={...farmAnimalPosition(horse)};
+  requestAnimalTravel('horse','ride');
+  for(let frame=0;frame<3000&&!riding&&(route.length||pendingPlace||penGate.destination);frame++) update(1/60);
+  assert.equal(riding,false,'实际门洞被占用时不能上马困在栏内');
+  assert.equal(mountSession,null); assert.ok(distance(farmAnimalPosition(horse),original)<.01);
+  for(let attempt=0;attempt<30&&!riding;attempt++) {
+    for(let frame=0;frame<90;frame++) update(1/60);
+    requestAnimalTravel('horse','ride');
+    for(let frame=0;frame<3000&&!riding&&(route.length||pendingPlace||penGate.destination);frame++) update(1/60);
+  }
+  assert.ok(riding,'动物正常闲逛让开后能再次上马');
+  clock=mountStarted+1; updateAnimalTravel(0);
+  walkTo({x:690,y:700}); assert.ok(route.length);
+`);
+
+check('三套外出服骑乘、钓鱼、秋千保持衣服，停马四蹄落地', `
+  for(const clothes of ['pink','blue','down']) {
+    changeScene('farm'); outfit=clothes; busyUntil=0;
+    updateAnimalTravel(0);
+    player.x=places.horse.x; player.y=places.horse.y;
+    mountHorse(); assert.ok(riding); clock=mountStarted+1;
+    updateAnimalTravel(0);
+    player.walking=false; events.length=0; draw();
+    const standing=events.filter(event=>event[1]===idleRider);
+    assert.equal(standing.length,1);
+    assert.equal(standing[0][2],idleRidingRegions[clothes].x);
+    assert.equal(standing[0][3],idleRidingRegions[clothes].y);
+    player.walking=true; events.length=0; draw();
+    const moving=clothes==='down'?downRider:clothes==='blue'?blueRider:rider;
+    assert.equal(events.filter(event=>event[1]===moving).length,1);
+    assert.equal(events.filter(event=>event[1]===idleRider).length,0);
+    dismountHorse(); startFishing(); assert.ok(fishingSession);
+    events.length=0; draw();
+    const fishing=clothes==='down'?downFishingPose:clothes==='blue'?blueFishingPose:fishingPose;
+    assert.equal(events.filter(event=>event[1]===fishing).length,1);
+    cancelFishing(); sitOnSwing(); assert.ok(swingSession);
+    events.length=0; drawSwing();
+    const seated=clothes==='down'?downSwingRider:clothes==='blue'?blueSwingRider:swingRider;
+    assert.equal(events.filter(event=>event[1]===seated).length,1);
+    assert.equal(outfit,clothes); leaveSwing();
+  }
+  for(const clothes of ['pajamas','robe']) {
+    outfit=clothes; busyUntil=0;
+    mountHorse(); startFishing(); sitOnSwing();
+    assert.equal(riding,false); assert.equal(fishingSession,null); assert.equal(swingSession,null);
+    assert.equal(outfit,clothes,'外出服不足时提示换衣，不自动变粉裙');
+  }
 `);
 
 check('钓鱼早拉、漏咬和成功收线的库存一致', `
@@ -374,7 +589,12 @@ check('抚摸结束和中断清掉自己的互动点，不释放其他动作', `
   changeScene('farm'); setPetting(); setFarmWeather('hail'); hailHazard.nextHit=0;
   updateHailHazard(0.1); assert.equal(outdoorPlaces.animalPet,undefined);
   assert.equal(busyUntil,clock+0.7);
-  setPetting(); collapseAtMidnight(); assert.equal(outdoorPlaces.animalPet,undefined);
+  setPetting(); collapseAtMidnight();
+  assert.ok(animalPetting,'户外跨过午夜后仍可完成手头动作');
+  assert.equal(lateSleepSession,null);
+  assert.notEqual(busyUntil,Infinity);
+  changeScene('house'); collapseAtMidnight();
+  assert.ok(lateSleepSession,'在家过午夜才回床休息');
   assert.equal(busyUntil,Infinity);
 `);
 
@@ -397,10 +617,19 @@ check('喂食不移动异图宠物，马必须在本图才能骑乘', `
   changeScene('farm');
   cat.scene='house'; cat.x=350; cat.y=250; cat.route=[{x:360,y:250}];
   dog.scene='forest'; dog.x=390; dog.y=580; dog.route=[{x:400,y:600}];
-  growFarmAnimals();
+  const first=feedFarmAnimals();
+  assert.ok(first.fed>0);
+  assert.equal(feedFarmAnimals().fed,0,'同一天不能反复喂食');
+  farmTime.day++; updateFarm(0);
+  assert.equal(animals[2].targetGrowth,1,'幼崽一顿饭不会立刻长大');
   assert.equal(cat.x,350); assert.equal(cat.y,250); assert.equal(cat.route.length,1);
   assert.equal(dog.x,390); assert.equal(dog.y,580); assert.equal(dog.route.length,1);
-  dog.scene='farm'; dog.x=350; dog.y=250; growFarmAnimals();
+  dog.scene='farm'; dog.x=350; dog.y=250; feedFarmAnimals();
+  farmTime.day++; updateFarm(0);
+  assert.ok(animals[2].targetGrowth>1,'连续两天喂养后幼崽隔日成长');
+  assert.equal(animals[1].targetGrowth,1,'成体不因喂食变大');
+  assert.equal(animals[6].targetGrowth,1,'白母鸡不是幼崽');
+  assert.equal(animals[7].targetGrowth,1,'棕母鸡不是幼崽');
   assert.ok(canWalk(dog.x,dog.y));
   animals[3].visitScene='forest'; animals[3].visitPosition={x:800,y:700};
   player.x=592; player.y=700; mountHorse(); assert.equal(riding,false);
@@ -411,6 +640,22 @@ check('喂食不移动异图宠物，马必须在本图才能骑乘', `
   player.x=800; player.y=720; busyUntil=0; mountHorse(); assert.equal(riding,true);
   clock+=1; changeScene('farm'); dismountHorse(); updateAnimalTravel(0);
   assert.ok(places.horse.x>0); assert.ok(animalIsHere(animals[3]));
+`);
+
+check('手动带回养殖场要求有可用的引导宠物', `
+  changeScene('farm');
+  dog.scene='forest'; cat.scene='city';
+  startHerding();
+  assert.equal(herdSession,null,'猫狗不在场时不能显示它们正在带队');
+  dog.scene='farm'; cat.scene='farm';
+  petHealth.dog.sick=true; petHealth.cat.sick=true;
+  startHerding();
+  assert.equal(herdSession,null,'生病的猫狗不能带队');
+  petHealth.dog.sick=false; petHealth.cat.sick=false;
+  dog.scene='forest'; cat.scene='farm';
+  startHerding();
+  assert.equal(herdSession.pet,cat,'狗不在时由当前在场的猫负责引导');
+  assert.ok(herdSession.group.length>0);
 `);
 
 check('模态菜单阻止游戏输入，异图宠物不拦截地面点击', `
@@ -432,8 +677,10 @@ check('模态菜单阻止游戏输入，异图宠物不拦截地面点击', `
   assert.equal(destinations.length,1);
   assert.equal(destinations[0].place,null);
   cat.scene='city'; destinations.length=0;
+  const petRequests=[]; requestPetCare=(action,kind)=>petRequests.push({action,kind});
   document.querySelector('#game').listeners.pointerdown({clientX:700,clientY:650});
-  assert.equal(destinations[0].place,'cat');
+  assert.equal(petRequests[0].kind,'cat');
+  assert.equal(petRequests[0].action,'hold');
 `);
 
 check('宠物不在场时不闲聊邀请，睡着的猫不被说成散步', `
@@ -583,7 +830,7 @@ check('公共入口门固定门槛，前后两层仅绘制一次门板与转场'
   const destinations=[];
   const actualWalkTo=walkTo;
   const fillRects=[]; ctx.fillRect=(...args)=>fillRects.push(args);
-  for (const [map,key] of [['junction','villageDoor'],['friends','villageDoor'],
+  for (const [map,key] of [['friends','villageDoor'],
     ['friends','villageDoorRight'],['city','hospitalDoor'],['city','petHospitalDoor'],['city','bakeryDoor']]) {
     changeScene(map); const panel=buildingDoors[map][key].panel;
     assert.ok(findPath(places[key]).length,map+' 门前可达');
@@ -608,7 +855,8 @@ check('公共入口门固定门槛，前后两层仅绘制一次门板与转场'
     changeScene(map); doorTransition={started:clock-.95,destination:'city',building:true};
     events.length=0; fillRects.length=0;
     drawBuildingDoorAnimation(false); drawBuildingDoorAnimation(true);
-    assert.equal(events.filter(e=>e[0]==='drawImage'&&e[1]===doorPanelsArt).length,1);
+    const panelArt=map==='villageHouse'?buildingArt.villageHouse:doorPanelsArt;
+    assert.equal(events.filter(e=>e[0]==='drawImage'&&e[1]===panelArt).length,1);
     assert.equal(fillRects.length,1);
   }
 `);
@@ -634,6 +882,163 @@ check('朋友分散漫步且聊天时停下，不在同一横带拥挤', `
   const before={x:friend.x,y:friend.y}; clock++; updateFriendWandering(1);
   assert.equal(friend.x,before.x); assert.equal(friend.y,before.y);
   assert.equal(places.friend0.x,friend.x); assert.equal(places.friend0.y,friend.y+55);
+`);
+
+check('常驻猫全部使用独立橘猫贴图，玩家布偶猫不替换', `
+  changeScene('boardingHouse'); events.length=0;
+  drawBoardingGuests(false); drawBoardingGuests(true);
+  const drawings=events.filter(event=>event[0]==='drawImage');
+  assert.equal(drawings.length,4);
+  assert.ok(drawings.every(event=>event[1]===boardingCatAtlas));
+  assert.notEqual(boardingCatAtlas,catAtlas);
+  assert.equal(catAtlas.url,'assets/cat-walk.png');
+  assert.equal(boardingCatAtlas.url,'assets/boarding-orange-cats.png');
+  assert.equal(pets.filter(pet=>pet.kind==='cat').length,1);
+  interactBuilding('boardCat');
+  assert.equal(cat.boarded,false,'不能凭空寄养没带来的猫');
+  assert.equal(cat.scene,'farm');
+`);
+
+check('猫狗同时寄养、离开后留守、回来按原身份接走', `
+  changeScene('farm'); catCarrierPacked=true;
+  player.x=cat.x; player.y=cat.y; requestPetCare('hold','cat');
+  assert.equal(carriedPet,cat);
+  dog.x=player.x+20; dog.y=player.y; interactPet('dog');
+  assert.ok(walkingDog);
+  changeScene('boardingHouse');
+  player.x=places.boardCat.x; player.y=places.boardCat.y;
+  interactBuilding('boardCat');
+  assert.equal(cat.boarded,true); assert.equal(carriedPet,null);
+  assert.equal(cat.care,null); assert.equal(cat.scene,'boardingHouse');
+  assert.match(document.querySelector('#explore-grid').innerHTML,/接回我的布偶猫/);
+  interactBuilding('boardDog');
+  assert.equal(dog.boarded,true); assert.equal(walkingDog,false);
+  const catPoint={x:cat.x,y:cat.y}, dogPoint={x:dog.x,y:dog.y};
+  requestPetCare('hold','cat'); interactPet('dog'); throwPetBall('cat');
+  assert.equal(carriedPet,null); assert.equal(walkingDog,false); assert.equal(ballGame,null);
+  for (const hour of [8,14,22]) {
+    farmTime.hour=hour;
+    for (let i=0;i<120;i++) {clock+=1/60;updatePets(1/60);}
+    assert.equal(cat.x,catPoint.x); assert.equal(cat.y,catPoint.y);
+    assert.equal(dog.x,dogPoint.x); assert.equal(dog.y,dogPoint.y);
+  }
+  changeScene('city'); changeScene('house');
+  assert.equal(cat.scene,'boardingHouse'); assert.equal(dog.scene,'boardingHouse');
+  catCarrierPacked=false; changeScene('boardingHouse');
+  interactBuilding('boardCat');
+  assert.ok(cat.boarded,'忘带猫包不取消寄养'); assert.equal(carriedPet,null);
+  assert.equal(cat.x,catPoint.x); assert.equal(cat.y,catPoint.y);
+  assert.match(document.querySelector('#explore-grid').innerHTML,/接回我的布偶猫/);
+  assert.match(document.querySelector('#explore-grid').innerHTML,/接回寄养的萨摩耶/);
+  farmTime.hour=14; catCarrierPacked=true;
+  player.x=places.boardDog.x; player.y=places.boardDog.y;
+  interactBuilding('boardDog'); assert.ok(walkingDog); assert.equal(dog.boarded,false);
+  interactBuilding('boardCat'); assert.equal(carriedPet,cat); assert.equal(cat.boarded,false);
+  assert.ok(walkingDog,'提着猫包也可以牵已接回的狗');
+  assert.doesNotMatch(document.querySelector('#explore-grid').innerHTML,/接回/);
+  changeScene('city'); changeScene('junction'); changeScene('farm');
+  assert.equal(cat.scene,'farm'); assert.equal(dog.scene,'farm');
+  assert.equal(carriedPet,cat); assert.ok(walkingDog);
+  assert.equal(pets.length,2,'接回原来的宠物，不能复制出新宠物');
+`);
+
+check('卧室里夜间可立即松绳，不把病狗送医入口锁死', `
+  changeScene('house'); dog.scene='house'; dog.x=300; dog.y=286;
+  dog.care={mode:'bed',phase:'resting',started:clock-5,from:{x:300,y:286},floor:{x:456,y:322}};
+  farmTime.hour=22; farmTime.phase='evening'; walkingDog=true; petHealth.dog.sick=true;
+  updateFarmTime(0);
+  const button=document.querySelector('#walk-dog');
+  assert.equal(button.disabled,false); assert.match(button.textContent,/松开/);
+  const position={x:dog.x,y:dog.y};
+  button.listeners.click();
+  assert.equal(walkingDog,false); assert.equal(dog.x,position.x); assert.equal(dog.y,position.y);
+  assert.equal(dog.care.mode,'bed','松绳不把卧室里的狗搬走');
+  assert.equal(button.disabled,false,'病狗夜间仍可牵去就医');
+  petHealth.dog.sick=false; walkingDog=true;
+  updateFarmTime(0); assert.equal(button.disabled,false,'已有牵绳的健康狗也能松开');
+  interactPet('dog'); assert.equal(walkingDog,false);
+  updateFarmTime(0); assert.equal(button.disabled,true,'健康狗夜间不开始新的散步');
+  assert.match(button.textContent,/休息/);
+`);
+
+check('从客厅走到卧室给睡着的狗喂两种药，喂完再休息', `
+  changeScene('house'); dog.scene='house'; dog.x=300; dog.y=286;
+  dog.home={x:300,y:286};
+  dog.care={mode:'bed',phase:'resting',started:clock-5,from:{x:300,y:286},floor:{x:456,y:322}};
+  dog.sleeping=true; farmTime.hour=22; farmTime.phase='evening';
+  petHealth.dog.sick=true; prescribeMedicine(petHealth.dog);
+  const course=petHealth.dog.course;
+  document.querySelector('#medicine-dialog').showModal(); refreshMedicineBox();
+  assert.match(document.querySelector('#medicine-list').innerHTML,/卧室/);
+  requestGameMedicine('dog',0);
+  assert.equal(document.querySelector('#medicine-dialog').open,false);
+  assert.equal(course.remaining[0],3,'走近之前不扣药');
+  assert.equal(course.doseCounts[0],0); assert.ok(route.length);
+  const origin={x:player.x,y:player.y};
+  let previous={...origin};
+  for(let frame=0;frame<1200&&petMedicineRequest;frame++) {
+    update(1/60);
+    assert.ok(distance(player,previous)<3,'人物实际步行，不传送到狗旁');
+    previous={x:player.x,y:player.y};
+    assert.equal(dog.x,300); assert.equal(dog.y,286);
+    if(petMedicineRequest?.phase==='feeding') assert.equal(dog.sleeping,false);
+  }
+  assert.equal(petMedicineRequest,null); assert.ok(distance(player,origin)>200);
+  assert.equal(course.doseCounts[0],1); assert.equal(course.remaining[0],2);
+  assert.equal(document.querySelector('#medicine-dialog').open,true,'喂完可继续选择第二种药');
+  assert.equal(dog.sleeping,false,'准备第二种药时不会立即睡回去');
+  requestGameMedicine('dog',0); assert.equal(course.remaining[0],2,'重复点击不重复扣药');
+  requestGameMedicine('dog',1);
+  for(let frame=0;frame<180&&petMedicineRequest;frame++) update(1/60);
+  assert.equal(course.doseCounts[1],1); assert.equal(course.completedDays,1);
+  assert.equal(petHealth.dog.sick,true,'一天用药不会提前完成三天疗程');
+  document.querySelector('#medicine-dialog').close(); update(1/60);
+  assert.equal(dog.sleeping,true); assert.equal(dog.scene,'house');
+  assert.equal(dog.x,300); assert.equal(dog.y,286);
+`);
+
+check('取消走近、异图与寄养不能消耗药，冰箱已取药只喂一次', `
+  changeScene('house'); dog.scene='house'; dog.x=300; dog.y=286;
+  dog.care={mode:'bed',phase:'resting',started:clock-5,from:{x:300,y:286},floor:{x:456,y:322}};
+  dog.sleeping=true; petHealth.dog.sick=true; prescribeMedicine(petHealth.dog);
+  const course=petHealth.dog.course;
+  course.location='fridge'; course.remaining[0]=2; course.collected=[0];
+  requestGameMedicine('dog',0); keys.add('w'); update(1/60); keys.clear();
+  assert.equal(petMedicineRequest,null); assert.deepEqual(Array.from(course.collected),[0]);
+  assert.equal(course.doseCounts[0],0);
+  requestGameMedicine('dog',0); changeScene('farm');
+  assert.equal(petMedicineRequest,null); assert.equal(course.doseCounts[0],0);
+  requestGameMedicine('dog',0); assert.equal(petMedicineRequest,null,'异图不能隔空喂药');
+  changeScene('house'); dog.boarded=true;
+  requestGameMedicine('dog',0); assert.equal(petMedicineRequest,null); assert.equal(course.doseCounts[0],0);
+  dog.boarded=false; requestGameMedicine('dog',0);
+  for(let frame=0;frame<1200&&petMedicineRequest;frame++) update(1/60);
+  assert.equal(course.doseCounts[0],1); assert.equal(course.collected.length,0);
+  assert.equal(course.remaining[0],2,'喂已取出的药不再次扣冰箱库存');
+  requestGameMedicine('dog',0); assert.equal(course.doseCounts[0],1);
+  assert.equal(course.remaining[0],2);
+`);
+
+check('自动避雨不抢牵绳或喂药中的狗，主动牵狗可中断引导', `
+  changeScene('farm'); farmClimate.weather='rain'; walkingDog=true;
+  for (const animal of animals) {
+    animal.grazing=true; animal.sheltering=false;
+    animal.restPosition={x:700+animal.cell*10,y:680};
+  }
+  startRainHerding();
+  assert.equal(walkingDog,true,'自动避雨不能擅自松开玩家的牵绳');
+  assert.notEqual(herdSession?.pet,dog);
+  stopHerding(); walkingDog=false; pendingPlace='dog';
+  assert.equal(availableRainHerdPet(animals[0]),null,'正在走近牵狗时也不能抢走它');
+  pendingPlace=null; petHealth.dog.sick=true; prescribeMedicine(petHealth.dog);
+  petMedicineRequest={pet:dog,patientId:'dog',index:0,scene,phase:'approach',started:clock};
+  assert.equal(herdPetAvailable(dog),false,'喂药时不能安排引导');
+  clearPetMedicineRequest(); petHealth.dog.sick=false;
+  dog.playing=true;
+  herdSession={pet:dog,otherPet:null,group:[animals[0]],index:0,automatic:true};
+  document.querySelector('#walk-dog').listeners.click();
+  assert.equal(herdSession,null,'玩家主动牵狗先结束自动引导');
+  assert.equal(pendingPlace,'dog');
 `);
 
 console.log('全部核心集成检查通过；贴图、音频与真实 FPS 仍需内置浏览器试玩。');

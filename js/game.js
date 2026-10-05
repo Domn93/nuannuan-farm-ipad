@@ -9,14 +9,15 @@ function sceneScale(y) {
   return ['house', 'barn'].includes(scene) || isBuildingInterior() ? 0.82 : Math.max(0.76, Math.min(1.25, 0.82 + ((y - 441) / 539) * 0.42));
 }
 const keys = new Set();
-// 冰箱和药盒需要继续推进动画、保鲜和日期；其余模态菜单暂停世界。
+// 冰箱和小药袋需要继续推进动画、保鲜和日期；其余模态菜单暂停世界。
 // 两类菜单都阻止游戏快捷键和自动寻路，避免选择过程中把人物带走。
 const pausedGameDialogs = [
   '#help-dialog', '#backpack-dialog', '#guide-dialog', '#shoes-dialog',
   '#fish-dialog', '#pet-care-dialog', '#alarm-dialog', '#farm-care-dialog'
 ].map((id) => document.querySelector(id));
 const gameDialogs = [...pausedGameDialogs,
-  document.querySelector('#fridge-dialog'), document.querySelector('#medicine-dialog')];
+  document.querySelector('#fridge-dialog'), document.querySelector('#medicine-dialog'),
+  document.querySelector('#tv-dialog')];
 const gameChoicePanels = ['#kitchen-panel', '#clothes-panel', '#activity-drawer']
   .map((id) => document.querySelector(id));
 
@@ -29,7 +30,8 @@ function gameChoicePanelOpen() {
 }
 
 const player = { x: 650, y: 775, facing: 1, view: 0, walking: false, step: 0 };
-const pocket = { flowers: 0, fish: 0, food: 0, mushrooms: 0, hearts: 0, insects: 0, wood: 0, coins: 20, leaves: 0,
+const pocket = { flowers: 0, fish: 0, food: 0, bread: 0, fruit: 0, vegetables: 0,
+  mushrooms: 0, hearts: 0, insects: 0, wood: 0, coins: 20, leaves: 0,
   meat: 0, icecream: 0, slush: 0, spoiledFood: 0 };
 let places = outdoorPlaces,
   scene = 'farm',
@@ -37,6 +39,7 @@ let places = outdoorPlaces,
   tvOn = false;
 let doorTransition = null,
   mountStarted = -Infinity,
+  mountSession = null,
   catchUntil = -Infinity;
 const foregroundFence = [
   [0, 782],
@@ -51,6 +54,17 @@ let route = [],
   pendingPlace = null,
   nearPlace = null,
   busyUntil = 0;
+let catExitArmed = false;
+
+function carriedCatExitPlace() {
+  if (carriedPet !== cat) return null;
+  if (scene === 'boardingHouse') return null;
+  if (scene === 'house') return 'exit';
+  if (scene === 'farm') return 'travel';
+  if (scene === 'barn') return 'barnExit';
+  if (isBuildingInterior()) return 'buildingExit';
+  return scene === 'junction' ? 'returnFarm' : isExploring() ? 'junction' : null;
+}
 let lastTime = 0,
   toastUntil = 7,
   clock = 0,
@@ -82,26 +96,50 @@ const fishingRegions = [
   { x: 305, y: 527, width: 300, height: 476 },
   { x: 927, y: 534, width: 330, height: 467 }
 ];
+const fishingOutfitRegions = {
+  blue: [
+    { x: 266, y: 17, width: 349, height: 495 },
+    { x: 930, y: 19, width: 326, height: 493 },
+    { x: 304, y: 526, width: 303, height: 479 },
+    { x: 925, y: 532, width: 338, height: 471 }
+  ],
+  down: [
+    { x: 266, y: 17, width: 352, height: 479 },
+    { x: 930, y: 20, width: 340, height: 477 },
+    { x: 305, y: 526, width: 316, height: 471 },
+    { x: 911, y: 528, width: 363, height: 473 }
+  ]
+};
+// 待机图是四蹄着地的整套骑乘姿势；三格衣服与行走图使用同一人物。
+const idleRidingRegions = {
+  pink: { x: 133, y: 18, width: 509, height: 493 },
+  blue: { x: 882, y: 19, width: 513, height: 493 },
+  down: { x: 131, y: 527, width: 512, height: 493 }
+};
 const background = new Image(),
   girl = new Image(),
   animalAtlas = new Image();
 const interior = new Image(),
   rider = new Image(),
-  blueRider = new Image();
-background.src = 'assets/farm-gate.png';
+  blueRider = new Image(),
+  downRider = new Image(),
+  idleRider = new Image();
+background.src = 'assets/farm-background-wide-gate.png';
 girl.src = 'assets/walk.png';
 animalAtlas.src = 'assets/animals-clean.png';
 interior.src = 'assets/interior-clear.png';
 rider.src = 'assets/riding.png';
 blueRider.src = 'assets/riding-blue.png';
+downRider.src = 'assets/riding-down.png';
+idleRider.src = 'assets/riding-idle-plaid.png';
 const animals = [
-  { cell: 0, x: 150, y: 518, width: 112, height: 81, seed: 0 },
+  { cell: 0, x: 685, y: 645, width: 112, height: 81, seed: 0, grazing: true },
   { cell: 1, x: 224, y: 485, width: 106, height: 93, seed: 1 },
   { cell: 2, x: 300, y: 483, width: 67, height: 58, seed: 2 },
   { cell: 3, x: 365, y: 451, width: 117, height: 111, seed: 3 },
   { cell: 4, x: 493, y: 492, width: 133, height: 103, seed: 4 },
   { cell: 5, x: 367, y: 515, width: 52, height: 60, seed: 5 },
-  { cell: 6, x: 418, y: 520, width: 55, height: 58, seed: 6 },
+  { cell: 6, x: 830, y: 655, width: 55, height: 58, seed: 6, grazing: true },
   { cell: 7, x: 419, y: 478, width: 46, height: 47, seed: 7 }
 ];
 animals.forEach((animal) => {
@@ -163,15 +201,17 @@ function insidePolygon(x, y, points) {
 function canWalk(x, y) {
   const terrain =
     scene === 'farm' ? onFarmGround : scene === 'house' ? onHouseFloor : scene === 'barn' ? onBarnFloor : isBuildingInterior() ? onBuildingFloor : onExploreGround;
-  const radius = riding ? 17 : 8;
+  // 马的四蹄占地比人物宽；窄楼梯和门前通道要下马后才能走。
+  const halfWidth = riding ? 60 * sceneScale(y) : 8,
+    halfDepth = riding ? 22 * sceneScale(y) : 8;
   if (scene === 'farm' && riding && !horseClearOfWater(x, y)) return false;
   if (!canPushAnimalAt(x, y)) return false;
   return [
     [0, 0],
-    [radius, 0],
-    [-radius, 0],
-    [0, radius],
-    [0, -radius]
+    [halfWidth, 0],
+    [-halfWidth, 0],
+    [0, halfDepth],
+    [0, -halfDepth]
   ].every(([dx, dy]) => terrain(x + dx, y + dy));
 }
 
@@ -200,9 +240,9 @@ function horseClearOfWater(x, y) {
 const grid = [];
 const gridMap = new Map();
 function rebuildGrid() {
-  // 室内家具间有约 26 像素的通道，24 像素网格会漏掉可走的中心线。
+  // 家具和马蹄通过门洞时余量较小，24 像素网格会漏掉可走的中心线。
   const cell =
-    scene === 'house' || isBuildingInterior() || (scene === 'farm' && (animalTravel || animalTravelRequest)) ? 12 : CELL;
+    scene === 'house' || isBuildingInterior() || (scene === 'farm' && (riding || animalTravel || animalTravelRequest)) ? 12 : CELL;
   grid.length = 0;
   gridMap.clear();
   for (let y = cell / 2; y < H; y += cell)
@@ -233,7 +273,7 @@ function findPath(destination, origin = player, walkable = null) {
       (!suppliedWalkable || suppliedWalkable(node));
   }
   const cell =
-    scene === 'house' || isBuildingInterior() || (scene === 'farm' && (animalTravel || animalTravelRequest)) ? 12 : CELL;
+    scene === 'house' || isBuildingInterior() || (scene === 'farm' && (riding || animalTravel || animalTravelRequest)) ? 12 : CELL;
   const nodes = walkable ? grid.filter(walkable) : grid;
   if (!nodes.length) return [];
   const start = nearestNode(origin, nodes),
@@ -295,21 +335,32 @@ function toast(message, duration = 4) {
   toastUntil = clock + duration;
 }
 
-// 多个互动点相邻时选择最近的实际物件，不受 places 插入顺序影响。
-function nearestPlaceAt(point, radius) {
-  let closest = null;
-  let best = radius * radius;
+// 同一区域有多个互动点时，最近的仍是 E，其余依距离排列给 R/T/Y。
+function nearbyPlaceActions(point, radius) {
+  const nearby = [];
   for (const [name, place] of Object.entries(places)) {
     if (place.x < 0 || (name === 'horse' && !animalIsHere(animals[3]))) continue;
-    if (name === 'dog' && !petIsHere(dog) || name === 'cat' && !petIsHere(cat)) continue;
+    if (name === 'dog' && (!petIsHere(dog) || walkingDog || dog.boarded) ||
+        name === 'cat' && (!petIsHere(cat) || cat.boarded || carriedPet === cat)) continue;
     const gap = (point.x - place.x) ** 2 + (point.y - place.y) ** 2;
-    if (gap < best) { best = gap; closest = name; }
+    if (gap < radius * radius) nearby.push({ name, place, gap });
   }
-  return closest;
+  nearby.sort((a, b) => a.gap - b.gap);
+  const anchor = nearby[0]?.place;
+  return anchor ? nearby.filter(({ place }) => distance(place, anchor) < 95)
+    .slice(0, 4).map(({ name }) => name) : [];
+}
+
+function nearestPlaceAt(point, radius) {
+  return nearbyPlaceActions(point, radius)[0] ?? null;
 }
 
 function walkTo(point, place = null) {
   if (lateSleepSession) return;
+  if (place === 'toilet' && toiletNeed.started !== null && distance(player, places.toilet) > 90) {
+    toast('这次要你自己控制暖暖走到马桶旁，再按 E 使用。', 6);
+    return;
+  }
   if (petFeedingAction || shoeAction) {
     petFeedingAction = null;
     shoeAction = null;
@@ -336,7 +387,7 @@ function walkTo(point, place = null) {
     penGate.destination = null;
     if (!penGate.open && insidePen(player) !== insidePen(point) && place !== 'penGate') {
       if (riding) {
-        toast('先下马，再进入养殖场吧。');
+        animatePenGate(true, { point: { ...point }, place });
         return;
       }
       penGate.destination = { point: { ...point }, place };
@@ -356,6 +407,8 @@ function walkTo(point, place = null) {
     point = { x: player.x > 972 ? 1020 : 850, y: 520 };
     place = 'balconyDoor';
   }
+  // 动物会改变可走区域；起步前更新网格，避免旧站位直接判定无路可走。
+  rebuildGrid();
   route = findPath(point);
   pendingPlace = place;
   if (!route.length) {
@@ -428,7 +481,12 @@ function interact(place = nearPlace) {
   }
   if (!place || !places[place] || clock < busyUntil || distance(player, places[place]) > 100)
     return;
+  if (place === 'petMedicine') {
+    updatePetMedicineRequest();
+    return;
+  }
   if (interactBuilding(place)) return;
+  if (place === 'catCarrier' && interactCatCarrier()) return;
   if (interactHousePlants(place)) return;
   if (interactAirConditioner(place)) return;
   if (collectLeaf(place)) return;
@@ -564,9 +622,7 @@ function interact(place = nearPlace) {
   }
   if (scene === 'house') {
     if (place === 'tv') {
-      tvOn = !tvOn;
-      places.tv.label = tvOn ? '关掉电视' : '看电视';
-      toast(tvOn ? '电视开啦，看看海边的小鱼和云朵吧 📺' : '电视关好了');
+      openTv();
     } else
       toast(
         {
@@ -588,10 +644,18 @@ function interact(place = nearPlace) {
 
 function finishInteraction(place, caughtFish) {
   if (place === 'animals') {
+    const feeding = feedFarmAnimals();
+    if (!feeding.available) {
+      toast('小动物现在不在围栏里，等它们回来再喂吧。');
+      return;
+    }
+    if (!feeding.fed) {
+      toast('今天已经喂过了，等明天再添饲料吧。');
+      return;
+    }
     feedingStarted = clock;
-    growFarmAnimals();
     pocket.hearts++;
-    toast('小动物吃饱后慢慢长大啦！收获一颗爱心 ♡', 6);
+    toast('添好今天一顿饲料啦，小动物慢慢吃饱，幼崽会一天天长大！收获一颗爱心 ♡', 6);
     burst('♡', 415, 530);
   } else if (place === 'flowers') {
     pocket.flowers++;
@@ -643,8 +707,9 @@ function update(dt) {
   updateFishing(dt);
   updateSwing(dt);
   updateBalconyDoor();
-  updateToilet();
+  updateToilet(dt);
   updateBath();
+  updateHygiene(dt);
   updateHome();
   updateHousePlants(dt);
   updateAirConditioner(dt);
@@ -659,6 +724,7 @@ function update(dt) {
   updateBuildingHealth(dt);
   updatePetHealth(dt);
   updateMedicineBox();
+  updateTv();
   updateMeteor(dt);
   updateFireflies(dt);
   updateForestAdventure(dt);
@@ -733,6 +799,7 @@ function update(dt) {
     if (player.view === 1 && dx !== 0) player.facing = dx < 0 ? -1 : 1;
     if (player.walking) player.step += dt * (keys.has('Shift') ? 12 : 8);
   }
+  updateBoardingEdge();
   if (!route.length && pendingPlace) {
     const place = pendingPlace;
     pendingPlace = null;
@@ -740,6 +807,7 @@ function update(dt) {
   }
   updatePets(dt);
   updatePetCare(dt);
+  updatePetMedicineRequest();
   updateCatSleepPose(dt);
   updateAnimalTravel(dt);
   updateAnimalCare(dt);
@@ -753,9 +821,29 @@ function update(dt) {
       interact(kind);
     } else if (!route.length || distance(route[route.length - 1], pet) > 60) route = findPath(pet);
   }
-  nearPlace = nearestPlaceAt(player, scene === 'farm' || scene === 'barn' ? 100 : 85);
-  if (riding) nearPlace = 'dismount';
+  const catExit = carriedCatExitPlace();
+  if (catExit && places[catExit]) {
+    const gap = distance(player, places[catExit]);
+    if (gap > 125) catExitArmed = true;
+    if (catExitArmed && gap < 45 && clock >= busyUntil && !doorTransition) {
+      catExitArmed = false;
+      interact(catExit);
+    }
+  }
+  const nearbyActions = nearbyPlaceActions(player, scene === 'farm' || scene === 'barn' ? 100 : 85);
+  nearPlace = nearbyActions[0] ?? null;
+  if (catExit && places[catExit] && distance(player, places[catExit]) < 110)
+    nearPlace = catExit;
+  if (riding) {
+    const exit = scene === 'farm' ? 'travel' : scene === 'junction' ? 'returnFarm' : 'junction';
+    nearPlace = places[exit] && distance(player, places[exit]) < 100 ? exit : 'dismount';
+  }
   if (meteorWishAvailable()) nearPlace = 'wish';
+  const regularInteraction = !lateSleepSession && !livingSession && !forestAdventureSession &&
+    !bathSession && !sleepSession && !swingSession && !fishingSession && !riding &&
+    !gameChoicePanelOpen() &&
+    nearPlace === nearbyActions[0];
+  const shortcutPlaces = regularInteraction && !isBusy ? nearbyActions : [];
   const interaction = document.querySelector('#interact');
   interaction.hidden =
     lateSleepSession || fishingSession || swingSession || sleepSession || bathSession || livingSession || forestAdventureSession
@@ -768,8 +856,6 @@ function update(dt) {
     interactionLabel = livingSession.kind === 'sofa' ? '站起来' : '结束动作';
   else if (forestAdventureSession)
     interactionLabel = '结束森林互动';
-  else if (carriedPet && nearPlace === carriedPet.kind)
-    interactionLabel = `放下${carriedPet.name}`;
   else if (bathSession) interactionLabel = '结束洗澡';
   else if (sleepSession)
     interactionLabel = sleepSession.waking !== null ? '正在起床…' : '起床';
@@ -781,6 +867,15 @@ function update(dt) {
   const interactionContent = `${interactionLabel} <kbd>E</kbd>`;
   // 保留已有按钮子节点，避免每帧重建 DOM，也避免按下/抬起之间替换点击目标。
   if (interaction.innerHTML !== interactionContent) interaction.innerHTML = interactionContent;
+  document.querySelectorAll('[data-interaction-slot]').forEach((button) => {
+    const slot = Number(button.dataset.interactionSlot);
+    const place = shortcutPlaces[slot];
+    button.hidden = !place;
+    if (!place) return;
+    button.dataset.place = place;
+    const content = `${places[place].label} <kbd>${['E', 'R', 'T', 'Y'][slot]}</kbd>`;
+    if (button.innerHTML !== content) button.innerHTML = content;
+  });
   let roomHint =
     scene === 'farm'
       ? swingSession
@@ -793,7 +888,7 @@ function update(dt) {
       : scene === 'barn'
         ? '🌾 养殖场里面'
       : isBuildingInterior()
-        ? { hospital: '✚ 村庄医院', petHospital: '🐾 宠物医院', bakery: '🥐 面包店', villageHouse: '⌂ 村舍' }[scene] + (nuannuanHealth.cold ? ' · 暖暖感冒了' : '')
+        ? { hospital: '✚ 村庄医院', petHospital: '🐾 宠物医院', bakery: '🥐 面包店', villageHouse: '⌂ 村舍', boardingHouse: '🐾 小动物寄养所' }[scene] + (nuannuanHealth.cold ? ' · 暖暖感冒了' : '')
       : player.y < 400
         ? player.x < 850
           ? '☾ 卧室'
@@ -805,6 +900,8 @@ function update(dt) {
     roomHint += homeAirConditioner.on
       ? ' · 空调24°，凉快' : ' · 有点热，可以开空调';
   if (isExploring()) roomHint = explorationRoomHint();
+  if (!isExploring() && (carriedPet || walkingDog))
+    roomHint += ' · 按住 E 或按 Q 放下宠物/松开牵绳';
   const roomHintElement = document.querySelector('#room-hint');
   if (roomHintElement.textContent !== roomHint) roomHintElement.textContent = roomHint;
   document.querySelector('#toast').classList.toggle('quiet', clock > toastUntil);
@@ -828,12 +925,13 @@ function draw() {
   else if (scene === 'barn') ctx.drawImage(barnArt, 0, 0, W, H);
   else if (isExploring()) drawExploreBackground();
   else ctx.drawImage(scene === 'farm' ? background : interior, 0, 0, W, H);
+  drawBoardingEntrance();
   drawBuildingDoorAnimation(false);
-  drawPetHospitalDetails();
   drawSeasonGround();
   drawDogBed();
   drawAnimalBathroomPlaces();
   if (scene === 'house') drawHouseDetails();
+  drawTvPreview();
   drawHousePlantLeaves();
   drawAirConditioner();
   drawFridge(false);
@@ -878,19 +976,22 @@ function draw() {
   drawCarriedPet(true);
   if (scene === 'friends') drawFriends(false);
   drawSwing();
-  const walkFrame = player.walking ? Math.floor(player.step) % 4 : 1;
+  const walkFrame = player.walking || nuannuanHealth.treatment?.phase === 'to-bed'
+    ? Math.floor(player.step) % 4 : 1;
   if (
     !lateSleepSession &&
     !swingSession &&
     !sleepSession &&
+    nuannuanHealth.treatment?.phase !== 'bed' &&
+    !heatRescue &&
     (!bathSession || bathSession.state === 'opening') &&
     !['sofa', 'eat'].includes(livingSession?.kind)
   ) {
     const scale = sceneScale(player.y);
     const size = 193 * scale;
-    const bounce = !fishingSession && !riding ? 0 : player.walking
+    const bounce = riding && player.walking
       ? Math.abs(Math.sin((player.step * Math.PI) / 2)) * 3
-      : Math.sin(clock * 2.1) * 1.5;
+      : 0;
     const hailLift = hailPlayerLift();
     ctx.fillStyle = '#31441b35';
     ctx.beginPath();
@@ -923,11 +1024,11 @@ function draw() {
         landing: 2,
         escaped: 1
       }[fishingSession.state];
-      const region = fishingRegions[pose],
+      const region = (fishingOutfitRegions[outfit] ?? fishingRegions)[pose],
         poseWidth = (size * region.width) / region.height;
       ctx.rotate(fishingSession.state === 'reeling' ? Math.sin(clock * 6) * 0.018 : 0);
       ctx.drawImage(
-        fishingPose,
+        outfit === 'down' ? downFishingPose : outfit === 'blue' ? blueFishingPose : fishingPose,
         region.x,
         region.y,
         region.width,
@@ -939,36 +1040,52 @@ function draw() {
       );
     } else if (riding) {
       // 骑乘图包含完整人物与马，必须随裙子选图，不能固定绘制粉裙版本。
-      const ridingAtlas = outfit === 'blue' ? blueRider : rider;
+      const ridingAtlas = outfit === 'down' ? downRider : outfit === 'blue' ? blueRider : rider;
       const rw = ridingAtlas.naturalWidth / 2,
         rh = ridingAtlas.naturalHeight / 2;
       const mountProgress = Math.min(1, (clock - mountStarted) / 0.8);
       // 上马前后互斥绘制，不能把整套骑乘图和马/人物半透明叠在一起。
       if (mountProgress < 0.55) {
         const horse = animalRegions[3];
+        const climb = mountProgress / 0.55;
+        const easedClimb = climb * climb * (3 - 2 * climb);
+        const idle = idleRidingRegions[outfit];
+        const seatedWidth = size * 1.07 * idle.width / idle.height;
+        const horseWidth = animals[3].width + (seatedWidth - animals[3].width) * easedClimb;
+        const horseHeight = animals[3].height + (size * 0.78 - animals[3].height) * easedClimb;
         ctx.drawImage(
           animalAtlas,
           horse.x,
           horse.y,
           horse.width,
           horse.height,
-          -size * 0.65,
-          -size * 0.78,
-          size * 1.3,
-          size * 0.78
+          -horseWidth / 2,
+          -horseHeight,
+          horseWidth,
+          horseHeight
         );
-        const hop = Math.sin(mountProgress * Math.PI) * size * 0.32;
+        const from = mountSession?.fromPlayer ?? player;
+        const offsetX = (from.x - player.x) * player.facing * (1 - easedClimb);
+        const offsetY = (from.y - player.y) * (1 - easedClimb);
+        const hop = Math.sin(climb * Math.PI) * size * 0.15 + easedClimb * size * 0.38;
+        const region = walkingFrameRegion(walkAtlas, 1, 1);
+        const pixelScale = size / cellH;
         ctx.drawImage(
           walkAtlas,
-          cellW,
-          0,
-          cellW,
-          cellH,
-          -spriteWidth / 2 - size * 0.32 * (1 - mountProgress),
-          -size - hop,
+          region.x,
+          region.y,
+          region.width,
+          region.height,
+          -spriteWidth / 2 + offsetX,
+          -region.footBottom * pixelScale + offsetY - hop,
           spriteWidth,
-          size
+          region.height * pixelScale
         );
+      } else if (!player.walking) {
+        const region = idleRidingRegions[outfit];
+        const height = size * 1.07, width = height * region.width / region.height;
+        ctx.drawImage(idleRider, region.x, region.y, region.width, region.height,
+          -width / 2, -height + 3, width, height);
       } else
         ctx.drawImage(
           ridingAtlas,
@@ -997,6 +1114,36 @@ function draw() {
       );
     }
     ctx.restore();
+    drawPlayerDirt(size);
+    const faceColor = clock < nuannuanHealth.vomitUntil ? '#8cc36b'
+      : toiletNeed.started !== null ? '#e98785' : null;
+    canvas.dataset.playerFace = faceColor === '#8cc36b' ? 'green'
+      : faceColor ? 'red' : 'normal';
+    if (faceColor && !riding && player.view !== 2) {
+      ctx.save();
+      ctx.fillStyle = faceColor;
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.ellipse(player.x + (player.view === 1 ? player.facing * 5 : 0),
+        player.y - size * 0.76, size * 0.16, size * 0.12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    if (clock < nuannuanHealth.vomitUntil) {
+      ctx.save();
+      ctx.font = `${Math.round(size * 0.24)}px sans-serif`;
+      ctx.fillText('🤢', player.x + size * 0.27, player.y - size * 0.91);
+      ctx.fillStyle = '#a5ba76';
+      for (let i = 0; i < 5; i++) {
+        const fall = (clock * 2.4 + i / 5) % 1;
+        ctx.beginPath();
+        ctx.ellipse(player.x + player.facing * (size * 0.12 + 18 * fall),
+          player.y - size * 0.65 + size * 0.55 * fall,
+          2 + fall * 2, 3 + fall * 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
     if (clock < busyUntil && !fishingSession && !toiletSession && !forestAdventureSession && !nuannuanHealth.treatment && !petVetVisit && hailLift === 0) {
       ctx.font = '28px sans-serif';
       ctx.fillText(nearPlace === 'pond' ? '🎣' : '♡', player.x + 55, player.y - size / 2);
@@ -1038,6 +1185,7 @@ function draw() {
   if (doorTransition?.building) drawBuildingDoorAnimation(true);
   else drawDoorAnimation();
   drawBuildingAction();
+  drawPetHospitalDetails();
   drawToilet();
   drawBath();
   drawLivingAction();
@@ -1078,7 +1226,7 @@ function animalPose(animal) {
       angle: 0,
       squash: animal.sleeping ? 1 + Math.sin(clock * 1.4 + animal.seed) * 0.008 : 1
     };
-  const elapsed = clock - feedingStarted;
+  const elapsed = clock - (animal.fedAt ?? -Infinity);
   const active = elapsed >= 0 && elapsed < 6;
   const response = active ? Math.sin((Math.PI * elapsed) / 6) : 0;
   const approach = response * (animal.cell < 5 ? 30 : 38);
@@ -1227,6 +1375,26 @@ const movementKeys = [
   'd',
   'Shift'
 ];
+let petReleaseTimer = null;
+let petReleaseHeld = false;
+
+function releaseCarriedPetOrDog() {
+  if (carriedPet) {
+    requestPetCare('release', carriedPet.kind);
+    return true;
+  }
+  if (walkingDog) {
+    stopDogWalk();
+    return true;
+  }
+  return false;
+}
+
+function cancelPetReleaseTimer() {
+  if (petReleaseTimer !== null) clearTimeout(petReleaseTimer);
+  petReleaseTimer = null;
+}
+
 window.addEventListener('keydown', (event) => {
   if (event.target?.closest?.('select, #activity-drawer, #toggle-activities')) return;
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
@@ -1239,7 +1407,32 @@ window.addEventListener('keydown', (event) => {
   if (key === 'e') {
     keys.add('e');
     event.preventDefault();
-    if (!event.repeat) riding ? dismountHorse() : interact();
+    if (event.repeat) return;
+    if ((carriedPet || walkingDog) && !fishingSession && !riding) {
+      petReleaseHeld = false;
+      cancelPetReleaseTimer();
+      petReleaseTimer = setTimeout(() => {
+        petReleaseTimer = null;
+        petReleaseHeld = releaseCarriedPetOrDog();
+      }, 650);
+    } else if (riding && nearPlace === 'dismount') dismountHorse();
+    else interact();
+  }
+  if (['r', 't', 'y'].includes(key) && !event.repeat &&
+      !lateSleepSession && !livingSession && !forestAdventureSession && !bathSession &&
+      !sleepSession && !swingSession && !fishingSession && !riding &&
+      !gameChoicePanelOpen() && clock >= busyUntil) {
+    const slot = { r: 1, t: 2, y: 3 }[key];
+    const actions = nearbyPlaceActions(player, scene === 'farm' || scene === 'barn' ? 100 : 85);
+    if (actions[slot]) {
+      event.preventDefault();
+      interact(actions[slot]);
+    }
+  }
+  if (key === 'q' && !event.repeat) {
+    event.preventDefault();
+    cancelPetReleaseTimer();
+    petReleaseHeld = releaseCarriedPetOrDog();
   }
   if (key === ' ' && swingSession) {
     event.preventDefault();
@@ -1253,12 +1446,22 @@ window.addEventListener('keydown', (event) => {
   if (key === 'Escape' && wardrobe.open) toggleWardrobe();
   if (key === 'Escape' && fishingSession) cancelFishing();
 });
-window.addEventListener('keyup', (event) =>
-  keys.delete(event.key.length === 1 ? event.key.toLowerCase() : event.key)
-);
-window.addEventListener('blur', () => keys.clear());
+window.addEventListener('keyup', (event) => {
+  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+  keys.delete(key);
+  if (key === 'e' && petReleaseTimer !== null) {
+    cancelPetReleaseTimer();
+    if (!petReleaseHeld && !gameDialogOpen()) interact();
+  }
+  if (key === 'e') petReleaseHeld = false;
+});
+window.addEventListener('blur', () => {
+  keys.clear();
+  cancelPetReleaseTimer();
+});
 document.addEventListener('visibilitychange', () => {
   keys.clear();
+  if (document.hidden) cancelPetReleaseTimer();
   if (document.hidden) {
     music?.stop();
     stopFlushSound();
@@ -1279,6 +1482,22 @@ canvas.addEventListener('pointerdown', (event) => {
     y: (event.clientY - rect.top - (rect.height - H * scale) / 2) / scale
   };
   if (point.x < 0 || point.x > W || point.y < 0 || point.y > H) return;
+  if (scene === 'junction' &&
+      ((point.x > 900 && point.x < 1080 && point.y > 85 && point.y < 210) ||
+        (point.x > 870 && point.x < 1030 && point.y >= 210 && point.y < 390))) {
+    walkTo(places.village, 'village');
+    return;
+  }
+  // 门优先于跟随宠物的轮廓，带猫狗出门时点击门口仍能进屋。
+  const clickedDoor = Object.entries(buildingDoors[scene] ?? {}).find(([, door]) => {
+    const panel = door.hitArea ?? door.panel;
+    return panel && point.x >= panel.x && point.x <= panel.x + panel.width &&
+      point.y >= panel.y - panel.height && point.y <= panel.y;
+  });
+  if (clickedDoor) {
+    walkTo(places[clickedDoor[0]], clickedDoor[0]);
+    return;
+  }
   {
     // 前景宠物优先；点击轮廓随行走、进食和趴睡贴图变化。
     const pet = [...pets].sort((a, b) => b.y - a.y).find((candidate) => {
@@ -1287,19 +1506,21 @@ canvas.addEventListener('pointerdown', (event) => {
         point.y >= bounds.y && point.y <= bounds.y + bounds.height;
     });
     if (pet) {
-      walkTo(places[pet.kind], pet.kind);
+      if (pet === cat) requestPetCare('hold', 'cat');
+      else walkTo(places[pet.kind], pet.kind);
       return;
     }
   }
-  // 门板的上半部离门前站位较远，也应能直接点击进入。
-  const clickedDoor = Object.entries(buildingDoors[scene] ?? {}).find(([, door]) => {
-    const panel = door.panel;
-    return panel && point.x >= panel.x && point.x <= panel.x + panel.width &&
-      point.y >= panel.y - panel.height && point.y <= panel.y;
-  });
-  if (clickedDoor) {
-    walkTo(places[clickedDoor[0]], clickedDoor[0]);
-    return;
+  if (scene === 'forest') {
+    const animal = forestWildlife.find((candidate) => {
+      const pose = forestAnimalPose(candidate);
+      return Math.abs(point.x - pose.x) < candidate.width * 0.55 &&
+        point.y < pose.y && point.y > pose.y - candidate.height;
+    });
+    if (animal) {
+      walkTo(places[animal.key], animal.key);
+      return;
+    }
   }
   const place = nearestPlaceAt(point, 65);
   if (scene === 'house') {
@@ -1331,9 +1552,11 @@ canvas.addEventListener('pointerdown', (event) => {
     walkTo(places.house, 'house');
     return;
   }
-  if (scene === 'farm' && animalIsHere(animals[3]) &&
-      point.x > 307 && point.x < 425 && point.y > 335 && point.y < 458) {
-    walkTo(places.horse, 'horse');
+  const horseHere = animals[3], horseGround = farmAnimalPosition(horseHere);
+  if (scene === 'farm' && !riding && animalIsHere(horseHere) &&
+      Math.abs(point.x - horseGround.x) < horseHere.width * horseHere.growth / 2 &&
+      point.y > horseGround.y - horseHere.height * horseHere.growth && point.y < horseGround.y + 8) {
+    requestAnimalTravel('horse', 'ride');
     return;
   }
   if (scene === 'house' && point.x > 450 && point.x < 585 && point.y > 380 && point.y < 444) {
@@ -1364,7 +1587,9 @@ canvas.addEventListener('pointerdown', (event) => {
     walkTo(places.alarm, 'alarm');
     return;
   }
-  if (scene === 'house' && point.x > 175 && point.x < 247 && point.y > 170 && point.y < 345) {
+  if (scene === 'house' && point.x > wardrobeLayout.x &&
+      point.x < wardrobeLayout.x + wardrobeLayout.width &&
+      point.y > wardrobeLayout.y && point.y < wardrobeLayout.y + wardrobeLayout.height) {
     walkTo(places.wardrobe, 'wardrobe');
     return;
   }
@@ -1404,7 +1629,13 @@ document.querySelectorAll('[data-key]').forEach((button) => {
 });
 document
   .querySelector('#interact')
-  .addEventListener('click', () => (riding ? dismountHorse() : interact()));
+  .addEventListener('click', () => (riding && nearPlace === 'dismount' ? dismountHorse() : interact()));
+document.querySelector('#interaction-actions').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-interaction-slot]');
+  if (!button || button.hidden || gameChoicePanelOpen() || clock < busyUntil) return;
+  const actions = nearbyPlaceActions(player, scene === 'farm' || scene === 'barn' ? 100 : 85);
+  if (actions[Number(button.dataset.interactionSlot)] === button.dataset.place) interact(button.dataset.place);
+});
 document.querySelector('#pump-swing').addEventListener('pointerdown', (event) => {
   if (!swingSession || swingSession.stopping) return;
   event.preventDefault();
@@ -1456,20 +1687,30 @@ document.querySelector('#go-house').addEventListener('click', () => walkTo(place
 document
   .querySelector('#go-farm')
   .addEventListener('click', () =>
-    scene === 'barn' ? interactBarn('barnExit') : isBuildingInterior() ? walkTo(places.buildingExit, 'buildingExit') : isExploring() ? changeScene('farm') : walkTo(places.exit, 'exit')
+    scene === 'barn' ? interactBarn('barnExit') : isBuildingInterior() ? walkTo(places.buildingExit, 'buildingExit')
+      : isExploring() ? walkTo(scene === 'junction' ? places.returnFarm : places.junction,
+        scene === 'junction' ? 'returnFarm' : 'junction') : walkTo(places.exit, 'exit')
   );
 document
   .querySelector('#ride-horse')
-  .addEventListener('click', () => (riding ? dismountHorse() : walkTo(places.horse, 'horse')));
+  .addEventListener('click', () => (riding ? dismountHorse() : requestAnimalTravel('horse', 'ride')));
 document
   .querySelector('#walk-dog')
   .addEventListener('click', () => {
+    if (walkingDog) {
+      stopDogWalk();
+      return;
+    }
+    if (dog.boarded) {
+      toast('萨摩耶正在寄养所，先去办理接回，再牵它散步吧。', 6);
+      return;
+    }
     if (!petIsHere(dog)) {
       toast('萨摩耶留在原来的地方，找到它再牵绳吧。');
       return;
     }
-    if (walkingDog) stopDogWalk();
-    else walkTo(places.dog, 'dog');
+    if (herdSession?.pet === dog || herdSession?.otherPet === dog) stopHerding();
+    walkTo(places.dog, 'dog');
   });
 document
   .querySelectorAll('[data-play-pet]')
@@ -1492,11 +1733,13 @@ document.querySelector('#save-alarm').addEventListener('click', () => {
 document
   .querySelectorAll('[data-outfit]')
   .forEach((button) => button.addEventListener('click', () => changeOutfit(button.dataset.outfit)));
+document
+  .querySelectorAll('[data-quilt]')
+  .forEach((button) => button.addEventListener('click', () => changeQuilt(button.dataset.quilt)));
 document.querySelectorAll('[data-room]').forEach((button) =>
   button.addEventListener('click', () => {
     if (livingSession?.kind === 'sofa' && button.dataset.room === 'tv') {
-      tvOn = !tvOn;
-      toast(tvOn ? '坐在沙发上看电视啦。' : '电视关好啦。');
+      openTv();
       return;
     }
     if (scene === 'house') {
@@ -1512,15 +1755,55 @@ function mountHorse() {
     return;
   }
   if (!animalIsHere(animals[3]) || riding) return;
-  if (animalTravel && !releaseTravelAnimal()) return;
-  if (carriedPet) clearPetCare(carriedPet);
-  if (walkingDog) stopDogWalk(null);
-  riding = true;
-  if (!canWalk(player.x, player.y)) {
-    riding = false;
-    toast('到宽一点的草地再上马吧。');
+  if (!requireOutdoorClothes()) return;
+  const horse = animals[3];
+  const position = farmAnimalPosition(horse);
+  if (distance(player, position) > 90 ||
+      (scene === 'farm' && insidePen(player) !== insidePen(position))) {
+    toast('先走到小马旁边，再上马吧。');
     return;
   }
+  if (animalTravel && !releaseTravelAnimal()) return;
+  if (scene === 'farm' && insidePen(position) && !penGate.open) animatePenGate(true);
+  riding = true;
+  const candidates = [];
+  const leavingPen = scene === 'farm' && penGate.open && insidePen(position);
+  if (leavingPen) {
+    rebuildGrid();
+    candidates.push(...grid.filter((point) => distance(point, position) <= 60 && insidePen(point)));
+  } else {
+    for (let dy = -60; dy <= 60; dy += 4)
+      for (let dx = -60; dx <= 60; dx += 4) {
+        const point = { x: position.x + dx, y: position.y + dy };
+        if (distance(point, position) <= 60 && canWalk(point.x, point.y) &&
+            (scene !== 'farm' || insidePen(point) === insidePen(position))) candidates.push(point);
+      }
+  }
+  candidates.sort((a, b) => distance(a, position) - distance(b, position));
+  // 门开着也可能被其他动物挡住；落点必须能接到门外草地，不能只在原地站得下。
+  const landing = leavingPen
+    ? candidates.find((point) => findPath({ x: 690, y: 700 }, point).length)
+    : candidates[0];
+  if (!landing) {
+    riding = false;
+    rebuildGrid();
+    toast(leavingPen ? '门口或马旁暂时被挡住了，等动物让开一点再上马吧。' : '到宽一点的草地再上马吧。');
+    return;
+  }
+  if (carriedPet) clearPetCare(carriedPet);
+  if (walkingDog) stopDogWalk(null);
+  mountSession = {
+    scene, fromHorse: { x: position.x, y: position.y }, toHorse: landing,
+    fromPlayer: { x: player.x, y: player.y }
+  };
+  player.x = position.x;
+  player.y = position.y;
+  player.facing = horse.walkFacing || 1;
+  player.walking = false;
+  horse.wanderTarget = null;
+  horse.visitTarget = null;
+  route = [];
+  pendingPlace = null;
   mountStarted = clock;
   busyUntil = clock + 0.8;
   rebuildGrid();
@@ -1528,33 +1811,55 @@ function mountHorse() {
   toast('暖暖骑上小马啦！方向键移动，E 下马。');
 }
 
+function updateHorseMount() {
+  if (!mountSession) return;
+  if (!riding || mountSession.scene !== scene) {
+    mountSession = null;
+    return;
+  }
+  const progress = Math.min(1, (clock - mountStarted) / 0.8);
+  const eased = progress * progress * (3 - 2 * progress);
+  player.x = mountSession.fromHorse.x + (mountSession.toHorse.x - mountSession.fromHorse.x) * eased;
+  player.y = mountSession.fromHorse.y + (mountSession.toHorse.y - mountSession.fromHorse.y) * eased;
+  if (progress === 1) mountSession = null;
+}
+
 function dismountHorse() {
   if (!riding || clock < busyUntil) return;
+  updateHorseMount();
+  const horse = animals[3];
+  const previousScene = horse.visitScene, previousPosition = horse.visitPosition;
+  horse.visitScene = scene;
+  horse.visitPosition = { x: player.x, y: player.y };
   riding = false;
-  if (isExploring() || animals[3].visitScene) {
-    animals[3].visitScene = scene;
-    const landing = [
-      [-65, 20],
-      [65, 20],
-      [0, 45],
-      [0, 0]
-    ]
-      .map(([dx, dy]) => ({ x: player.x + dx, y: player.y + dy }))
-      .find((p) => travelAnimalGround(animals[3], p.x, p.y));
-    animals[3].visitPosition = landing || { ...player };
-    animals[3].nextVisitWander = clock + 4;
-    places.horse = { ...animals[3].visitPosition, label: '骑上小马', icon: '🐴' };
+  const standing = [[0, 34], [-60, 20], [60, 20], [0, 45], [-72, 0], [72, 0]]
+    .map(([dx, dy]) => ({ x: player.x + dx, y: player.y + dy }))
+    .find((point) => canWalk(point.x, point.y) &&
+      (scene !== 'farm' || insidePen(point) === insidePen(horse.visitPosition)));
+  if (!standing) {
+    riding = true;
+    horse.visitScene = previousScene;
+    horse.visitPosition = previousPosition;
+    toast('旁边没有安全的落脚处，到宽一点的草地再下马吧。');
+    return;
   }
+  player.x = standing.x;
+  player.y = standing.y;
+  horse.walking = false;
+  horse.visitTarget = null;
+  horse.nextVisitWander = scene === 'farm' ? Infinity : clock + 4;
+  updateHorseMountingPlace();
   route = [];
   pendingPlace = null;
   rebuildGrid();
   document.querySelector('#ride-horse').textContent = '🐴 骑马';
   toast(
-    isExploring() ? '下马啦，小马在这里等你，还可以骑回农场。' : '下马啦，小马回到养殖场休息了。'
+    isExploring() ? '下马啦，小马在这里等你，还可以骑回农场。' : '下马啦，小马在这里等你，稍后还可以继续骑。'
   );
 }
 
 function changeScene(destination, arrival = null) {
+  clearPetMedicineRequest();
   if (lateSleepSession) return;
   if (animalTravel && animalTravel.animal.cell !== 3 && destination !== 'farm') {
     toast('先把小动物放回养殖场，再出门吧。只有小马可以骑出去。');
@@ -1592,6 +1897,7 @@ function changeScene(destination, arrival = null) {
   if (fishingSession) cancelFishing();
   planDogKennelReturn();
   scene = destination;
+  catExitArmed = false;
   clearMeteor();
   clearHailHazard();
   places =
@@ -1637,13 +1943,20 @@ function changeScene(destination, arrival = null) {
   );
   setupExploration();
   setupBuildingInterior();
-  if (!isBuildingInterior()) document.querySelector('#go-farm').textContent = '🌿 返回农场';
+  if (!isBuildingInterior()) document.querySelector('#go-farm').textContent =
+    isExploring() && scene !== 'junction' ? '↩ 返回岔路口' : '🌿 返回农场';
   if (arrival && canWalk(arrival.x, arrival.y)) {
     player.x = arrival.x;
     player.y = arrival.y;
+    if (walkingDog && petIsHere(dog) && canWalk(arrival.x, arrival.y + 35)) {
+      dog.x = arrival.x;
+      dog.y = arrival.y + 35;
+      dog.home = { x: dog.x, y: dog.y };
+      updatePetPlaceMarkers();
+    }
   }
   if (isBuildingInterior()) {
-    document.querySelector('#room-hint').textContent = { hospital: '✚ 村庄医院', petHospital: '🐾 宠物医院', bakery: '🥐 面包店', villageHouse: '⌂ 村舍' }[scene];
+    document.querySelector('#room-hint').textContent = { hospital: '✚ 村庄医院', petHospital: '🐾 宠物医院', bakery: '🥐 面包店', villageHouse: '⌂ 村舍', boardingHouse: '🐾 小动物寄养所' }[scene];
   }
   updatePetPlaceMarkers();
   if (rainReturn) herdSession = rainReturn;
@@ -1663,31 +1976,47 @@ Promise.all([
   background.decode(),
   girl.decode(),
   animalAtlas.decode(),
+  livestockGaitArt.decode(),
   interior.decode(),
   barnArt.decode(),
   ...Object.values(buildingArt).map((image) => image.decode()),
+  veterinarianArt.decode(),
+  boardingEntranceArt.decode(),
   doctorArt.decode(),
   rider.decode(),
   blueRider.decode(),
+  downRider.decode(),
+  idleRider.decode(),
   fridgeArt.decode(),
   fishingPose.decode(),
+  downFishingPose.decode(),
+  blueFishingPose.decode(),
   trout.decode(),
   fishAtlas.decode(),
   friendsArt.decode(),
   seasonalFriendsReady,
   forestWildlifeArt.decode(),
+  wildlifeGaitArt.decode(),
   dogAtlas.decode(),
   catAtlas.decode(),
+  boardingCatAtlas.decode(),
   petEatingReady,
   swingRider.decode(),
+  blueSwingRider.decode(),
+  downSwingRider.decode(),
   blueClothes.decode(),
   pajamaClothes.decode(),
   downClothes.decode(),
   robeClothes.decode(),
   bedPoses.decode(),
+  quiltArt.decode(),
+  catCarrierArt.decode(),
+  emptyCatCarrierArt.decode(),
+  medicinePouchArt.decode(),
   awakeBedPoses.decode(),
   kennelArt.decode(),
   cookingPanArt.decode(),
+  mealDishesArt.decode(),
   sleepingPetsArt.decode(),
   sleepingAnimalsArt.decode(),
   ...Object.values(petProps).map((image) => image.decode()),

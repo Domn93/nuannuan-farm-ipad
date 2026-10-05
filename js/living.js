@@ -1,9 +1,14 @@
 // 厨房、饭桌、沙发和洗手；做饭取消时退回预扣食材。
 
 let livingSession = null;
-const diningMeal = { servings: 0, name: '', eatAt: null };
+const diningMeal = { servings: 0, name: '', dishes: [], eatAt: null };
 const mealDeliveryPoint = { x: 810, y: 650 };
 const diningPlate = { x: 760, y: 568 };
+const mealDishesArt = new Image();
+mealDishesArt.src = 'assets/meal-dishes.png';
+const mealDishCells = {
+  '蔬菜饭': [0, 0], '蘑菇汤': [1, 0], '煎鱼': [0, 1], '肉菜饭': [1, 1]
+};
 // 皂液、双手和流水共用洗手台上的位置，手臂只在身边小幅活动。
 const handwashLayout = {
   stand: { x: 1110, y: 223 },
@@ -27,7 +32,7 @@ function applyKitchenSurface() {
   ctx.translate(-178, -506);
 }
 const recipes = {
-  vegetables: { name: '蔬菜饭', item: null, amount: 1 },
+  vegetables: { name: '蔬菜饭', item: 'vegetables', amount: 1 },
   mushroom: { name: '蘑菇汤', item: 'mushrooms', amount: 2 },
   fish: { name: '煎鱼', item: 'fish', amount: 2 },
   meat: { name: '肉菜饭', item: 'meat', amount: 2 }
@@ -57,7 +62,8 @@ function stopLivingAction(completed = false) {
     pendingPlace = null;
     if (completed) {
       diningMeal.servings++;
-      diningMeal.name = session.recipe.name;
+      diningMeal.dishes.push(session.recipe.name);
+      diningMeal.name = diningMeal.dishes[0];
       diningMeal.eatAt = clock + 12;
       pocket.food += session.recipe.amount - 1;
       toast(`${session.recipe.name}端到饭桌上啦，休息一会儿再坐下吃。`);
@@ -71,8 +77,9 @@ function stopLivingAction(completed = false) {
   if (session.kind === 'wash' && completed) toast('搓好泡泡、冲干净、擦干手啦！');
   if (session.kind === 'litter' && completed) toast('猫砂清理好啦，铲子放回盆旁边。');
   if (session.kind === 'eat' && completed) {
+    diningMeal.name = diningMeal.dishes[0] || '';
     pocket.hearts++;
-    toast('吃好饭啦，精神满满！');
+    toast(`吃好${session.mealName}啦，精神满满！`);
   }
 }
 
@@ -87,25 +94,35 @@ function beginLivingAction(kind, recipe = null) {
     toast('先走到厨房的炉灶旁，再开始做饭吧。');
     return;
   }
-  const snack = kind === 'eat' && !diningMeal.servings && !pocket.food
+  const snack = kind === 'eat' && !diningMeal.servings && !pocket.food && !pocket.bread && !pocket.fruit
     ? pocket.icecream ? 'icecream' : pocket.slush ? 'slush' : null : null;
-  if (kind === 'eat' && pocket.food < 1 && diningMeal.servings < 1 && !snack) {
-    toast('背包里还没有饭，先去厨房做一份吧。');
+  if (kind === 'eat' && pocket.food < 1 && pocket.bread < 1 && pocket.fruit < 1 && diningMeal.servings < 1 && !snack) {
+    toast('饭桌和背包里都没有可吃的食物，先准备一份吧。');
     return;
   }
   if (kind === 'cook' && recipe.item && pocket[recipe.item] + fridge.stock[recipe.item] < 1) {
     toast(`背包和冰箱里都没有${chilledItems[recipe.item].name}，先准备食材吧。`);
     return;
   }
+  let mealName = null;
   if (kind === 'eat') {
-    if (diningMeal.servings) diningMeal.servings--;
-    else if (snack) {
-      pocket[snack]--;
-      diningMeal.name = chilledItems[snack].name;
-    } else {
+    if (diningMeal.servings) {
+      diningMeal.servings--;
+      mealName = diningMeal.dishes.shift() || diningMeal.name;
+    } else if (pocket.food) {
       pocket.food--;
-      diningMeal.name = '饭';
+      mealName = '做好的饭';
+    } else if (pocket.bread) {
+      pocket.bread--;
+      mealName = '面包';
+    } else if (pocket.fruit) {
+      pocket.fruit--;
+      mealName = '水果';
+    } else if (snack) {
+      pocket[snack]--;
+      mealName = chilledItems[snack].name;
     }
+    diningMeal.name = diningMeal.dishes[0] || mealName;
     diningMeal.eatAt = null;
   }
   const ingredientReservation = kind === 'cook' && recipe.item
@@ -142,9 +159,9 @@ function beginLivingAction(kind, recipe = null) {
   }
   stopFarmVoices();
   document.querySelector('#kitchen-panel').hidden = true;
-  livingSession = { kind, recipe, ingredientSource, ingredientReservation, started: clock, stage: 'cooking' };
+  livingSession = { kind, recipe, mealName, ingredientSource, ingredientReservation, started: clock, stage: 'cooking' };
   busyUntil = kind === 'sofa' ? Infinity : clock + (kind === 'wash' ? 6 : kind === 'cook' ? 7 : 4);
-  if (kind === 'sofa' && (diningMeal.servings || pocket.food)) diningMeal.eatAt = clock + 12;
+  if (kind === 'sofa' && (diningMeal.servings || pocket.food || pocket.bread || pocket.fruit)) diningMeal.eatAt = clock + 12;
   if (kind === 'cook' && recipe.item === 'mushrooms') {
     // 食材只预扣一次；清洗和回炉都属于同一次做饭，取消仍退回蘑菇。
     livingSession.stage = 'to-sink';
@@ -257,23 +274,43 @@ function updateMealTime() {
   )
     return;
   diningMeal.eatAt = null;
-  if (diningMeal.servings < 1 && pocket.food < 1) return;
+  if (diningMeal.servings < 1 && pocket.food < 1 && pocket.bread < 1 && pocket.fruit < 1) return;
   if (livingSession?.kind === 'sofa') stopLivingAction();
   toast('休息好啦，走到饭桌旁，转身坐好吃饭。');
   walkTo(places.dining, 'dining');
 }
 
-function drawMealDish(x, y) {
+function drawMealDish(x, y, name) {
   ctx.save();
-  if (livingSession?.kind === 'eat' && ['冰淇淋', '冰沙'].includes(diningMeal.name)) {
+  if (['冰淇淋', '冰沙'].includes(name)) {
     ctx.fillStyle = '#f3edd8';
     ctx.beginPath();
     ctx.roundRect(x - 12, y - 15, 24, 19, 4);
     ctx.fill();
-    ctx.fillStyle = diningMeal.name === '冰淇淋' ? '#edc9b8' : '#efa35a';
+    ctx.fillStyle = name === '冰淇淋' ? '#edc9b8' : '#efa35a';
     ctx.beginPath();
     ctx.ellipse(x, y - 16, 13, 10, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (mealDishCells[name]) {
+    const [column, row] = mealDishCells[name];
+    const width = mealDishesArt.naturalWidth / 2;
+    const height = mealDishesArt.naturalHeight / 2;
+    ctx.drawImage(mealDishesArt, column * width, row * height, width, height,
+      x - 24, y - 20, 48, 40);
+    ctx.restore();
+    return;
+  }
+  if (name === '面包' || name === '水果') {
+    ctx.fillStyle = '#f4ecdb';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 3, 23, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = '29px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(name === '面包' ? '🥐' : '🍎', x, y + 3);
     ctx.restore();
     return;
   }
@@ -308,7 +345,8 @@ function drawLivingFurniture() {
   // 食物在开吃时已从库存扣除，但这一份仍留在桌上，直到吃完。
   // 盘子先于人物绘制，不能在坐姿头部上再叠一份食物。
   if (diningMeal.servings || livingSession?.kind === 'eat')
-    drawMealDish(diningPlate.x, diningPlate.y);
+    drawMealDish(diningPlate.x, diningPlate.y,
+      livingSession?.kind === 'eat' ? livingSession.mealName : diningMeal.dishes[0] || diningMeal.name);
   ctx.save();
   const bottle = handwashLayout.soap;
   const soap = ctx.createLinearGradient(bottle.x - 7, bottle.y + 7, bottle.x + 7, bottle.y + 27);
@@ -351,7 +389,7 @@ function drawKitchenPot() {
     ctx.beginPath();
     ctx.ellipse(216, 537, 21, 10, 0, 0, Math.PI * 2);
     ctx.clip();
-    ctx.fillStyle = recipe.item === 'mushrooms' ? '#cfac73' : '#eedbb0';
+    ctx.fillStyle = recipe.item === 'mushrooms' ? '#a27750' : '#eedbb0';
     ctx.fillRect(193, 526, 46, 24);
     if (recipe.item === 'fish') {
       ctx.drawImage(trout, 195, 524, 42, 24);
@@ -364,6 +402,17 @@ function drawKitchenPot() {
         ctx.beginPath();
         ctx.ellipse(x, y, recipe.item === 'mushrooms' ? 4 : 2.5, 2, i, 0, Math.PI * 2);
         ctx.fill();
+      }
+      if (recipe.item === 'meat') {
+        ctx.fillStyle = '#a65c38';
+        ctx.strokeStyle = '#74442e';
+        ctx.lineWidth = 1;
+        for (const [x, y] of [[202, 532], [218, 530], [226, 537], [209, 540]]) {
+          ctx.beginPath();
+          ctx.roundRect(x, y, 8, 5, 2);
+          ctx.fill();
+          ctx.stroke();
+        }
       }
     }
     ctx.restore();
@@ -554,7 +603,7 @@ function drawLivingAction() {
     ctx.moveTo(player.x + (handX > player.x ? 16 : -16), handY - 4);
     ctx.lineTo(dishX + (handX > player.x ? -10 : 10), dishY + 4);
     ctx.stroke();
-    drawMealDish(dishX, dishY);
+    drawMealDish(dishX, dishY, livingSession.recipe.name);
     ctx.restore();
     return;
   }

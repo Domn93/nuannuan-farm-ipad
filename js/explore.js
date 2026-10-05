@@ -97,10 +97,15 @@ const forestMushrooms = [
   { x: 1070, y: 570 },
   { x: 1200, y: 760 }
 ].map((point) => ({ ...point, readyAt: 0 }));
+const forestMushroomSpots = [
+  [310, 465], [450, 375], [600, 425], [850, 345], [1010, 400], [1230, 460],
+  [1280, 625], [1210, 775], [965, 755], [755, 625], [525, 730], [340, 745]
+];
 const explorePlaces = {
   junction: {
     forest: { x: 270, y: 490, label: '沿左边小路进森林', icon: '🌲' },
     city: { x: 1250, y: 500, label: '沿右边小路进集市', icon: '🏙' },
+    village: { x: 830, y: 420, label: '沿前面的小路进村庄', icon: '🏘' },
     friends: { x: 768, y: 420, label: '直走找朋友', icon: '♡' },
     returnFarm: { x: 768, y: 900, label: '回农场', icon: '⌂' }
   },
@@ -137,20 +142,36 @@ outdoorPlaces.travel = { x: 640, y: 900, label: '走出农场', icon: '🧭' };
 function isExploring() {
   return explorationScenes.includes(scene);
 }
+function onForestFloor(x, y) {
+  return insidePolygon(x, y, [
+    [270, 335], [455, 265], [850, 265], [1090, 310], [1290, 390],
+    [1350, 590], [1300, 815], [895, 865], [635, 855], [235, 810], [190, 565]
+  ]) || (x > 645 && x < 890 && y >= 850 && y < 955);
+}
+
+function relocateForestMushroom(mushroom) {
+  const options = forestMushroomSpots.filter(([x, y]) =>
+    Math.hypot(x - mushroom.x, y - mushroom.y) > 130 &&
+    Math.hypot(x - forestTimber.x, y - forestTimber.y) > 100 &&
+    forestMushrooms.every((other) => other === mushroom || Math.hypot(x - other.x, y - other.y) > 150));
+  if (!options.length) return;
+  const [x, y] = options[Math.floor(Math.random() * options.length)];
+  mushroom.x = x;
+  mushroom.y = y;
+  const marker = explorePlaces.forest[`mushroom${forestMushrooms.indexOf(mushroom)}`];
+  marker.x = x;
+  marker.y = y;
+}
+
 function onExploreGround(x, y) {
-  // 台阶前的窄通道只通向源图已有村舍门，不开放屋顶或整个后景。
-  if (scene === 'junction' && x > 1100 && x < 1270 && y > 320 && y <= 390) return true;
+  // 台阶前的窄通道只通向仍保留的房门，不开放屋顶或整个后景。
   if (scene === 'friends' && x > 1360 && x < 1446 && y > 270 && y <= 400) return true;
   if (scene === 'city' && ((x > 375 && x < 475 && y > 355 && y <= 435) ||
-    (x > 1175 && x < 1285 && y > 430 && y < 550))) return true;
-  if (x < 90 || x > 1446 || y < 365 || y > 965) return false;
+    (x > 1175 && x < 1285 && y > 430 && y < 550) ||
+    (x > 910 && x < 965 && y > 245 && y <= 415))) return true;
   if (scene === 'forest')
-    return ((x > 300 && x < 1230 && y > 375 && y < 850) ||
-      (x > 645 && x < 890 && y >= 850 && y < 955)) &&
-      !forestWildlife.some((animal) => {
-        const position = forestAnimalPose(animal);
-        return Math.hypot(x - position.x, y - position.y) < (animal.key === 'deer' ? 36 : 20);
-      }) && Math.hypot(x - forestTimber.x, y - forestTimber.y) > 30;
+    return onForestFloor(x, y) && Math.hypot(x - forestTimber.x, y - forestTimber.y) > 35;
+  if (x < 90 || x > 1446 || y < 365 || y > 965) return false;
   if (scene === 'city')
     return ((x > 340 && x < 1200 && y > 405 && y < 850) ||
       (x > 645 && x < 890 && y >= 850 && y < 955)) &&
@@ -193,7 +214,7 @@ function setupExploration() {
   rebuildGrid();
   toast(
     {
-      junction: '左转是森林，右转是城市，直走可以见朋友。',
+      junction: '左边是森林，前面能进村庄，右边是集市，也可以去找朋友。',
       forest: '走进森林啦！可以捕虫、和小动物玩，或者收集木材。',
       city: '城市集市到了！可以买面包，也可以主动认识这里的新朋友。',
       friends: '走近打个招呼吧。沿右边的小路一直走，就能去城市。'
@@ -204,11 +225,16 @@ function setupExploration() {
 
 function interactExploration(place) {
   if (place === 'travel' || place === 'returnFarm') {
-    changeScene(place === 'travel' ? 'junction' : 'farm');
+    changeScene(place === 'travel' ? 'junction' : 'farm',
+      place === 'returnFarm' ? { x: 690, y: 835 } : null);
     return true;
   }
   if (!isExploring()) return false;
   if (interactForestAdventure(place) || interactMarket(place)) return true;
+  if (scene === 'junction' && place === 'village') {
+    changeScene('city');
+    return true;
+  }
   if (scene === 'friends' && place === 'city') {
     changeScene('city', { x: 410, y: 650 });
     return true;
@@ -218,7 +244,10 @@ function interactExploration(place) {
     return true;
   }
   if (explorationScenes.includes(place)) {
-    changeScene(place);
+    const junctionArrival = scene === 'forest' ? { x: 420, y: 560 }
+      : scene === 'city' ? { x: 1090, y: 560 }
+        : scene === 'friends' ? { x: 768, y: 510 } : null;
+    changeScene(place, place === 'junction' ? junctionArrival : null);
     return true;
   }
   if (place.startsWith('mushroom')) {
@@ -226,6 +255,7 @@ function interactExploration(place) {
     if (clock < mushroom.readyAt) toast('这朵已经采过啦，过一会儿再来。');
     else {
       mushroom.readyAt = clock + 90;
+      relocateForestMushroom(mushroom);
       pocket.mushrooms++;
       recordDiscovery('mushroom');
       burst('🍄', player.x, player.y - 90, 3);
@@ -235,11 +265,16 @@ function interactExploration(place) {
   }
   if (place.startsWith('friend')) {
     chattingFriend = friendGroup[Number(place.slice(6))];
+    const needsBath = hygiene.dirt >= 75;
     document.querySelector('#friend-title').textContent =
       `和${chattingFriend.name}${chattingFriend.friend ? '聊天' : '交朋友'}`;
-    document.querySelector('#friend-line').textContent = chattingFriend.friend
+    document.querySelector('#friend-line').textContent = needsBath
+      ? '你身上有绿色脏东西，闻起来不太舒服。先回家洗个澡，我们再一起玩吧。'
+      : chattingFriend.friend
       ? chattingFriend.familiar
       : chattingFriend.greeting;
+    document.querySelectorAll('#friend-panel [data-friend-action]')
+      .forEach((button) => { button.disabled = needsBath; });
     document.querySelector('#friend-panel').hidden = false;
     route = [];
     return true;
@@ -249,10 +284,16 @@ function interactExploration(place) {
 
 function friendAction(action) {
   if (!chattingFriend || !['hello', 'flower', 'food'].includes(action)) return;
+  if (hygiene.dirt >= 75) {
+    document.querySelector('#friend-line').textContent = '先回家洗澡，洗干净再来一起玩吧。';
+    return;
+  }
+  synchronizeBagFood();
   const alreadyFriends = chattingFriend.friend;
+  const sharedFood = action === 'food' ? ['bread', 'fruit', 'food'].find((item) => pocket[item] > 0) : null;
   if (action === 'flower' || action === 'food') {
-    const item = action === 'flower' ? 'flowers' : 'food';
-    if (pocket[item] < 1) {
+    const item = action === 'flower' ? 'flowers' : sharedFood;
+    if (!item || pocket[item] < 1) {
       document.querySelector('#friend-line').textContent =
         action === 'flower'
           ? '背包里还没有花，先去农场采一朵吧。'
@@ -269,7 +310,7 @@ function friendAction(action) {
   document.querySelector('#friend-line').textContent = {
     hello: alreadyFriends ? chattingFriend.familiar : '我们成为朋友啦！下次还可以一起来玩。',
     flower: '谢谢你的花！我很喜欢。',
-    food: '谢谢你分享食物，我们一起野餐吧。'
+    food: sharedFood ? `谢谢你分享${chilledItems[sharedFood].name}，我们一起野餐吧。` : ''
   }[action];
   burst('♡', player.x, player.y - 100, 4);
   refreshBackpack();
@@ -277,11 +318,14 @@ function friendAction(action) {
 
 function refreshBackpack() {
   synchronizeBagFood();
-  document.querySelector('#bag-items').innerHTML = [
+  const supplies = [
     ['coins', '🪙 金币'],
     ['flowers', '🌼 花朵'],
     ['fish', '🐟 小鱼'],
-    ['food', '🥐 食物'],
+    ['food', '🍚 做好的饭'],
+    ['bread', '🥐 面包'],
+    ['fruit', '🍎 水果'],
+    ['vegetables', '🥬 蔬菜'],
     ['meat', '🥩 肉类'],
     ['icecream', '🍨 冰淇淋'],
     ['slush', '🍧 冰沙'],
@@ -293,7 +337,21 @@ function refreshBackpack() {
   ]
     .map(([key, label]) => `<li><span>${label}</span><strong>${pocket[key]}</strong></li>`)
     .join('');
-  document.querySelector('#eat-food').disabled = pocket.food < 1;
+  const activePatients = medicinePatients().filter((patient) => patient.health.course);
+  const medicineBag = activePatients.length
+    ? `<li class="medicine-bag-item"><span><img src="assets/medicine-pouch.png" alt="" /><span class="medicine-bag-details"><strong>小药袋</strong>${activePatients.map((patient) => {
+      const course = patient.health.course;
+      currentMedicineDay(course);
+      const bottles = course.location === 'pouch'
+        ? gameMedicines.map((medicine, index) => `${medicine.name}×${course.remaining[index]}`).join('、')
+        : course.collected.map((index) => gameMedicines[index].name).join('、');
+      return `<small>${medicineOwnerLabel(patient)}：${bottles || '药在冰箱里，尚未取出'}</small>`;
+    }).join('')}</span></span><button data-open-medicine>打开用药</button></li>`
+    : '';
+  document.querySelector('#bag-items').innerHTML = supplies + medicineBag;
+  const nextFood = ['food', 'bread', 'fruit'].find((item) => pocket[item] > 0);
+  document.querySelector('#eat-food').disabled = !nextFood;
+  document.querySelector('#eat-food').textContent = nextFood ? `吃一份${chilledItems[nextFood].name}` : '吃一份食物';
 }
 
 function friendWanderGround(point) {
@@ -388,23 +446,29 @@ function updateFriendWandering(dt) {
 }
 
 function explorationRoomHint() {
-  return scene === 'junction' ? '← 森林 · ↑ 朋友 · 集市 →' :
+  const hint = scene === 'junction' ? '← 森林 · ↑ 朋友 · 前方村庄 · 集市 →' :
     scene === 'friends' ? '一直往右走 → 城市 · 走近新朋友，按 E 打招呼' :
-      scene === 'city' ? '← 朋友聚会 · 主动打招呼，才能成为朋友' :
+      scene === 'city' ? '← 朋友聚会 · 医院和面包店间上楼去寄养所' :
         '走近探索，按 E 互动，也可打开活动菜单';
+  return hint + (carriedPet || walkingDog ? ' · 按住 E 或按 Q 放下宠物/松开牵绳' : '');
 }
 
 function updateExploration(dt = 0) {
   // 路口的画面道路就是入口，步行/点击走到这里即可进图，不必找到隐藏按钮。
   if (scene === 'junction' && clock >= busyUntil) {
-    if (player.x < 350 && player.y > 365 && player.y < 600) changeScene('forest');
-    else if (player.x > 1150 && player.y > 425 && player.y < 600 && pendingPlace !== 'villageDoor') changeScene('city');
+    if ((!pendingPlace || pendingPlace === 'forest') &&
+        player.x < 350 && player.y > 365 && player.y < 600) changeScene('forest');
+    else if ((!pendingPlace || pendingPlace === 'city' || pendingPlace === 'village') &&
+        player.x > 1150 && player.y > 425 && player.y < 600) changeScene('city');
   }
   // 聚会地图右侧与城市左侧连成一条路，落点留在出口以内，避免来回跳图。
   if (clock >= busyUntil) {
-    if (scene === 'friends' && player.x > 1320 && player.y > 420 && player.y < 760)
+    // 去村舍的路线也经过侧边出口；有明确目标时，不能被路过的出口抢走。
+    if (scene === 'friends' && (!pendingPlace || pendingPlace === 'city') &&
+        player.x > 1320 && player.y > 420 && player.y < 760)
       changeScene('city', { x: 410, y: 650 });
-    else if (scene === 'city' && player.x < 395 && player.y > 580 && player.y < 740)
+    else if (scene === 'city' && (!pendingPlace || pendingPlace === 'friends') &&
+        player.x < 395 && player.y > 580 && player.y < 740)
       changeScene('friends', { x: 1260, y: 630 });
   }
   if (scene === 'friends') updateFriendWandering(dt);
@@ -514,17 +578,22 @@ document.querySelector('#open-backpack').addEventListener('click', () => {
   document.querySelector('#backpack-dialog').showModal();
   keys.clear();
 });
+document.querySelector('#bag-items').addEventListener('click', (event) => {
+  if (!event.target.closest('[data-open-medicine]')) return;
+  document.querySelector('#backpack-dialog').close();
+  document.querySelector('#open-medicine').click();
+});
 document
   .querySelector('#close-backpack')
   .addEventListener('click', () => document.querySelector('#backpack-dialog').close());
 document.querySelector('#eat-food').addEventListener('click', () => {
   synchronizeBagFood();
-  if (pocket.food > 0) {
-    pocket.food--;
-    pocket.hearts++;
-    refreshBackpack();
-    toast('吃了一份食物，精神满满！');
-  }
+  const item = ['food', 'bread', 'fruit'].find((key) => pocket[key] > 0);
+  if (!item) return;
+  pocket[item]--;
+  pocket.hearts++;
+  refreshBackpack();
+  toast(`吃了一份${chilledItems[item].name}，精神满满！`);
 });
 document
   .querySelectorAll('[data-friend-action]')

@@ -1,0 +1,52 @@
+{
+  "assetsLoaded": true,
+  "audioState": "未开启",
+  "canvas": {
+    "height": 834,
+    "width": 1210
+  },
+  "cartoonFontReady": true,
+  "cleanliness": 89.57762500000013,
+  "clock": 15997.286999824013,
+  "dpadVisible": false,
+  "lastAudioClip": null,
+  "nearPlace": null,
+  "paused": true,
+  "pendingPlace": null,
+  "player": {
+    "x": 810,
+    "y": 644.14
+  },
+  "pocket": {
+    "bread": 0,
+    "coins": 20,
+    "fish": 0,
+    "flowers": 0,
+    "food": 0,
+    "fruit": 0,
+    "hearts": 0,
+    "icecream": 0,
+    "insects": 0,
+    "leaves": 0,
+    "meat": 0,
+    "mushrooms": 0,
+    "slush": 0,
+    "spoiledFood": 0,
+    "vegetables": 0,
+    "wood": 0
+  },
+  "ready": true,
+  "restored": true,
+  "routeLength": 0,
+  "satiety": 60.27204499998612,
+  "saved": false,
+  "scene": "house",
+  "soundOn": false,
+  "timestamp": "2026-10-05T12:16:55.728Z",
+  "type": "diagnostic",
+  "viewport": {
+    "height": 834,
+    "width": 1210
+  },
+  "voiceState": null
+}

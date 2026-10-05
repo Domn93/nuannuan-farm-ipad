@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>暖暖的小农场</title>
     <link rel="stylesheet" href="css/style.css?v=full-audit-69" />
-    <link rel="stylesheet" href="css/travel.css?v=full-audit-69" />
-    <link rel="stylesheet" href="css/fridge.css?v=fridge-65" />
-    <link rel="stylesheet" href="css/medicine.css?v=medicine-67" />
+    <link rel="stylesheet" href="css/travel.css?v=interaction-keys-86" />
+    <link rel="stylesheet" href="css/fridge.css?v=labeled-medicine-85" />
+    <link rel="stylesheet" href="css/medicine.css?v=labeled-medicine-85" />
+    <link rel="stylesheet" href="css/tv.css?v=tv-programs-95" />
   </head>
   <body>
     <main class="farm-app">
@@ -59,9 +60,14 @@
             </div>
             <div class="scene-badge"><span class="live-dot"></span> 慢慢走，今天没有要赶的路</div>
             <div id="toast" class="toast" role="status" aria-live="polite">
-              点击草地，开始你的农场散步吧
+              布偶猫先在寄养所等你。点击草地，开始散步吧
             </div>
-            <button id="interact" class="interact" hidden>互动 <kbd>E</kbd></button>
+            <div id="interaction-actions" class="interaction-actions" aria-label="附近可做的动作">
+              <button id="interact" class="interact" hidden>互动 <kbd>E</kbd></button>
+              <button class="interact" data-interaction-slot="1" hidden>互动 <kbd>R</kbd></button>
+              <button class="interact" data-interaction-slot="2" hidden>互动 <kbd>T</kbd></button>
+              <button class="interact" data-interaction-slot="3" hidden>互动 <kbd>Y</kbd></button>
+            </div>
             <button id="pump-swing" class="interact pump-swing" hidden>
               按住用力荡 <kbd>空格</kbd>
             </button>
@@ -73,6 +79,11 @@
               <button data-outfit="pajamas" aria-pressed="false">🌙 拿出并穿上兔兔睡衣</button>
               <button data-outfit="robe" aria-pressed="false">🛁 拿出并穿上浴袍</button>
               <button data-outfit="down" aria-pressed="false">❄ 拿出并穿上羽绒服</button>
+              <p class="wardrobe-divider">柜子里还叠着几床被子</p>
+              <button data-quilt="pink" aria-pressed="true">🌸 粉色花被</button>
+              <button data-quilt="blue" aria-pressed="false">🩵 蓝色格纹被</button>
+              <button data-quilt="sage" aria-pressed="false">🌿 绿色叶子被</button>
+              <button data-quilt="sunny" aria-pressed="false">☀️ 奶油色太阳被</button>
               <button data-room="shoeRack">🥿 去鞋架拿拖鞋</button>
               <button id="close-clothes">关上衣柜</button>
             </section>
@@ -132,23 +143,23 @@
               <option value="hail">冰雹</option>
             </select>
             <span id="health-status" hidden></span>
+            <span id="hygiene-status" hidden></span>
+            <span id="toilet-status" hidden></span>
             <span id="pet-health-status" hidden></span>
             <span id="room-hint">沿着小路去探索吧</span
             ><strong id="inventory" class="inventory">🌼 0　🐟 0　♡ 0</strong>
             <button id="open-backpack">🎒 背包</button>
             <button id="open-guide">📖 图鉴</button>
-            <button id="open-medicine" hidden>💊 药盒和疗程</button>
+            <button id="open-medicine" hidden>💊 小药袋 · 用药</button>
           </nav>
           <section class="control-deck" aria-label="今天想玩什么">
             <div id="farm-buttons" class="control-group">
               <h2>🌿 农场活动</h2>
               <div class="control-grid">
                 <button data-place="pen">⌂ 进入养殖场</button
-                ><button data-place="animals">🌾 给动物喂食</button
+                ><button data-place="animals">🌾 添今天一顿饲料</button
                 ><button data-place="pond">🐟 池塘钓鱼</button>
                 <button id="open-farm-care">♡ 抚摸动物和感情度</button>
-                <button id="herd-cat" hidden>🐈 带鸡去放牧</button>
-                <button id="herd-dog" hidden>🐕 带大动物放牧</button>
                 <button id="shelter-animals">☂ 带回避雨</button>
                 <button data-place="flowers">🌼 采花</button><button id="ride-horse">🐴 骑马</button
                 ><button id="go-swing" data-place="swing">♧ 荡秋千</button>
@@ -160,7 +171,7 @@
               <div class="control-grid">
                 <button data-room="bed">🛏 睡觉</button
                 ><button data-room="wardrobe">♧ 卧室左侧 · 衣柜换衣</button
-                ><button data-room="tv">📺 看电视</button>
+                ><button data-room="tv">📺 打开电视节目单</button>
                 <button data-room="bathroom">🫧 洗手</button
                 ><button data-room="toilet">🚽 使用马桶</button
                 ><button data-room="balcony">☀ 去阳台</button>
@@ -178,6 +189,7 @@
                 <button data-room="shoeRack">👟 鞋架和袜子</button>
                 <button id="water-plants">🌱 照顾盆栽</button>
                 <button data-room="airConditioner">❄ 开关空调</button>
+                <button data-room="catCarrier">🐾 拿起猫旅行包</button>
               </div>
             </div>
             <div id="explore-buttons" class="control-group" hidden>
@@ -227,17 +239,19 @@
       <p>老鼠、鱼、蘑菇、大树、树叶和动物，发现与捕获记录会自动保存。</p>
       <div id="guide-items"></div>
     </dialog>
-    <dialog id="medicine-dialog" class="collection-dialog" aria-label="药盒和疗程">
-      <button id="close-medicine" aria-label="收好药盒">×</button>
-      <h2>💊 药盒和疗程</h2>
-      <p>这是游戏里的虚构药水。医生开药后，每天用两种，完成三天疗程再恢复；同一天重复用药不会更快。</p>
+    <dialog id="medicine-dialog" class="collection-dialog" aria-label="小药袋和疗程">
+      <button id="close-medicine" aria-label="收好药袋">×</button>
+      <div class="medicine-pouch-heading"><img src="assets/medicine-pouch.png" alt="" /><div>
+        <h2>小药袋和疗程</h2><p>人药和动物药分开标名。药袋里的药可直接使用；存进冰箱后，先取出对应病人的药。</p>
+      </div></div>
+      <p>每天使用两种对应病人的虚构药水，用完才算当天完成。漏服只会延后疗程，已完成的次数保留。冰箱药跨天未用时，需要重新取出。</p>
       <ul id="medicine-list"></ul>
-      <p>猫狗用药要走近它们，等它们醒着再喂。没完成的疗程会保留，不会过一天就自动好。</p>
+      <p>选择猫狗的药后，暖暖会走近它，轻声叫醒再喂药。没完成的疗程会保留。</p>
     </dialog>
     <dialog id="fridge-dialog" class="collection-dialog" aria-label="厨房冰箱">
       <button id="close-fridge" aria-label="关好冰箱门">×</button>
       <h2>❄ 厨房冰箱</h2>
-      <p>上层放冷冻肉和鱼，下层放冰淇淋、冰沙。做饭可直接用冰箱里的食材。</p>
+      <p>食材可以存取；医生开出的药按人用、动物用和病人名字分开标好。每次用药前先取出对应的药，不能混用。</p>
       <ul id="fridge-items"></ul>
       <p id="fridge-freshness"></p>
       <button id="discard-spoiled-food">清理背包里变质的食物</button>
@@ -257,7 +271,7 @@
         <option value="horse">小马</option>
       </select>
       <div class="choice-grid">
-        <button data-pet-care="hold">抱在怀里</button><button data-pet-care="back">背在背上</button
+        <button data-pet-care="hold">抱起（猫用旅行包）</button><button data-pet-care="back">背在背上</button
         ><button data-pet-care="bed">让它上床</button><button data-pet-care="wash">给它洗澡</button
         ><button data-pet-care="release">放下来 / 下床</button>
         <button data-pet-care="push">推着一起走</button
@@ -302,6 +316,16 @@
       <p id="caught-fish-description">已经放进背包，可以慢慢看清它的样子。</p>
       <button id="close-fish">看好了，继续玩</button>
     </dialog>
+    <dialog id="tv-dialog" class="collection-dialog" aria-label="电视节目单">
+      <button id="close-tv" aria-label="收起电视节目单">×</button>
+      <h2>📺 暖暖的电视节目</h2>
+      <p>节目会自动连播，也可以选一档马上看。</p>
+      <canvas id="tv-preview" width="480" height="216" role="img" aria-label="正在播放的电视节目"></canvas>
+      <strong id="tv-title" aria-live="polite"></strong>
+      <p id="tv-description"></p>
+      <div id="tv-programs" class="tv-programs" aria-label="选择电视节目"></div>
+      <button id="tv-power">关掉电视</button>
+    </dialog>
     <dialog id="shoes-dialog" class="collection-dialog">
       <button id="close-shoes" aria-label="收起鞋架">×</button>
       <h2>👟 暖暖的鞋架</h2>
@@ -317,55 +341,57 @@
     <dialog id="help-dialog">
       <button id="close-help" aria-label="关闭说明">×</button><span class="dialog-flower">✿</span>
       <h2>欢迎来到暖暖的小农场</h2>
-      <p>方向键 / WASD 移动，Shift 小跑，E 互动。<br />点击地面也可以自动绕路前往。</p>
+      <p>方向键 / WASD 移动，Shift 小跑，E 互动。附近有多个动作时，按并排提示里的 E、R、T、Y 选择，也可以直接点击按钮。<br />点击地面也可以自动绕路前往。</p>
+      <p>抱着布偶猫或牵着萨摩耶时，短按 E 互动；按住 E 约半秒或按 Q，就能放下猫或松开牵绳。</p>
       <p>
         在桥上抛竿后等浮漂，鱼会先试探鱼饵。<br />浮漂沉下去时按 E 提竿，再按住 E 收线。<br />拉力变红就松开一下，也可以按住屏幕按钮。<br />走开或按
         Esc 可以收起鱼竿。
       </p>
       <p>
-        树、房子、围栏和动物不能攀爬。<br />点「骑马」上马，E 下马。<br />点「开门回家」探索房间，客厅可以看电视。
+        树、房子、围栏和动物不能攀爬。<br />点「骑马」上马，E 下马。<br />点「开门回家」探索房间，客厅可以看电视。<br />布偶猫先住在村庄寄养所；接它时从家里拿旅行猫包，再走医院与面包店之间的楼梯。
       </p>
       <p>第一次操作后播放舒缓音乐和轻流水声。<br />右上角音符可以静音。</p>
       <button id="start-playing">去散步吧 →</button>
     </dialog>
     <!-- 普通脚本共享游戏状态：保留以下加载顺序；game.js 在功能模块后启动。 -->
     <script src="js/music.js?v=voice-24"></script>
-    <script src="js/world.js?v=texture-audit-75"></script>
-    <script src="js/farm.js?v=texture-audit-76"></script>
-    <script src="js/fishing.js?v=fish-species-35"></script>
-    <script src="js/pets.js?v=texture-audit-75"></script>
-    <script src="js/swing.js?v=art-3"></script>
-    <script src="js/toilet.js?v=bathroom-align-42"></script>
-    <script src="js/home.js?v=texture-audit-75"></script>
-    <script src="js/play.js?v=pet-plants-58"></script>
-    <script src="js/night.js?v=texture-audit-75"></script>
-    <script src="js/seasons.js?v=logic-review-72"></script>
+    <script src="js/world.js?v=tv-programs-95"></script>
+    <script src="js/tv.js?v=tv-programs-95"></script>
+    <script src="js/farm.js?v=horse-medicine-94"></script>
+    <script src="js/fishing.js?v=realism-fix-91"></script>
+    <script src="js/pets.js?v=boarding-cat-home-96"></script>
+    <script src="js/swing.js?v=realism-fix-91"></script>
+    <script src="js/toilet.js?v=morning-toilet-100"></script>
+    <script src="js/home.js?v=morning-toilet-100"></script>
+    <script src="js/play.js?v=boarding-cats-92"></script>
+    <script src="js/night.js?v=health-care-97"></script>
+    <script src="js/seasons.js?v=realism-fix-91"></script>
     <script src="js/meteor.js?v=buildings-48"></script>
-    <script src="js/barn.js?v=barn-45"></script>
+    <script src="js/barn.js?v=realism-fix-91"></script>
     <script src="js/fireflies.js?v=pet-follow-44"></script>
-    <script src="js/herding.js?v=seasonal-friends-63"></script>
-    <script src="js/voices.js?v=pet-nearby-71"></script>
+    <script src="js/herding.js?v=dog-care-93"></script>
+    <script src="js/voices.js?v=sleep-silence-77"></script>
     <script src="js/animal-care.js?v=pet-plants-58"></script>
-    <script src="js/explore.js?v=texture-audit-75"></script>
+    <script src="js/explore.js?v=hygiene-friends-99"></script>
     <script src="js/seasonal-friends.js?v=seasonal-friends-63"></script>
-    <script src="js/forest-adventure.js?v=guide-52"></script>
-    <script src="js/market.js?v=texture-audit-76"></script>
-    <script src="js/bath.js?v=bathrobe-37"></script>
-    <script src="js/living.js?v=texture-audit-75"></script>
-    <script src="js/belongings.js?v=texture-audit-75"></script>
-    <script src="js/pet-care.js?v=texture-audit-75"></script>
-    <script src="js/scenery.js?v=texture-audit-75"></script>
-    <script src="js/buildings.js?v=texture-audit-75"></script>
-    <script src="js/pet-health.js?v=texture-audit-75"></script>
+    <script src="js/forest-adventure.js?v=realism-fix-91"></script>
+    <script src="js/market.js?v=realism-fix-91"></script>
+    <script src="js/bath.js?v=hygiene-friends-99"></script>
+    <script src="js/living.js?v=realism-fix-91"></script>
+    <script src="js/belongings.js?v=realism-fix-91"></script>
+    <script src="js/pet-care.js?v=health-care-97"></script>
+    <script src="js/scenery.js?v=realism-fix-91"></script>
+    <script src="js/buildings.js?v=health-care-97"></script>
+    <script src="js/pet-health.js?v=health-care-97"></script>
     <script src="js/discoveries.js?v=guide-52"></script>
-    <script src="js/animal-travel.js?v=logic-review-72"></script>
-    <script src="js/late-sleep.js?v=logic-review-72"></script>
+    <script src="js/animal-travel.js?v=realism-fix-91"></script>
+    <script src="js/late-sleep.js?v=morning-toilet-100"></script>
     <script src="js/plants.js?v=fridge-65"></script>
     <script src="js/pet-eating.js?v=pet-plants-58"></script>
     <script src="js/air-conditioner.js?v=season-days-61"></script>
-    <script src="js/fridge.js?v=logic-review-72"></script>
-    <script src="js/medicine.js?v=logic-review-72"></script>
-    <script src="js/game.js?v=texture-audit-76"></script>
+    <script src="js/fridge.js?v=realism-fix-91"></script>
+    <script src="js/medicine.js?v=health-care-97"></script>
+    <script src="js/game.js?v=hygiene-friends-99"></script>
     <script src="js/drawer.js?v=art-3"></script>
   </body>
 </html>
