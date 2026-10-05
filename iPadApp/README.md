@@ -1,75 +1,102 @@
-# 暖暖的小农场 · iPad 独立版
+# 暖暖的小农场 · iPad 版
 
-种种菜，摸摸猫，肚子咕咕叫就回家吃饭。带着暖暖过一个慢悠悠的小日子吧！
+种种菜，摸摸猫，肚子咕咕叫就回家吃饭。带着暖暖过一个慢悠悠的小日子。
 
 ![iPad 游戏画面](qa/game-11.jpg)
 
-这是暖暖的小农场的独立 iPad 工程，包含完整游戏代码和离线素材。运行和构建不依赖原网页版，也不会自动同步或修改网页版。
+这是使用 SwiftUI 和 WKWebView 的独立 iPad 工程，随安装包提供完整游戏、图片、音频和字体。游玩不需要联网或启动网页服务器。
 
-## 已实现
+## 环境要求
 
-- 苹果原生 SwiftUI 首页、系统启动屏、游戏图标、玩法说明和关于页面。
-- 首页与玩法说明使用简短儿童文案；标题与按钮使用随包提供的站酷快乐体，菜单图标使用 Noto Emoji 线描字体。来源和 OFL 许可保存在 `Game/fonts`，离线无需下载字体。
-- 本地 WKWebView + 苹果官方 WKURLSchemeHandler 加载完整游戏及图片、录音，离线游玩，不需要 Mac 服务。统一资源来源并为图片提供 CORS 响应，支持鞋袜换色和冬景的 Canvas 像素处理。
-- 原生首页支持横竖屏；进入游戏默认横屏，全屏画布、悬浮菜单与触摸操作，移除底部常驻说明。完整比例显示原画，主要按钮不少于 44pt。
-- 点地面寻路，方向键与小跑按钮在 iPad 隐藏。保留钓鱼收线、秋千用力、结束动作、放下宠物或松绳，下面的动作区域按需出现。
-- 左上角「小肚子」「干净度」两条轻量状态，与首页并排，不抢触摸。小肚子初始 80/100，随活动消耗，吃饭 +60、面包 +35、水果 +20、冰淇淋 +10、冰沙 +5；饭桌用餐完成才补充。饿了只提醒，不强制中断动作。干净度 = 100 − 脏污值，洗澡后恢复。两项跟随生活存档，旧存档的小肚子从 80 起步。
-- 回首页和切到后台暂停时间与声音，回首页后进入保留当前会话。
-- 每五秒尝试在动作完成后保存生活状态；返回首页或后台也会尝试保存。存档原子写入本机 Documents。未完成的做饭、洗澡、诊疗、睡眠等动作不会产生半成品存档，完全关闭后从最近的完整检查点恢复。
-- 存档包括背包与食物批次、日期天气、衣服被子鞋袜、位置、动物成长和喂养、宠物位置与健康/药物疗程、朋友关系、盆栽、图鉴及冰箱/饭桌库存。场景临时动画与 NPC 随机走动不序列化。
+| 项目 | 要求 |
+| --- | --- |
+| 开发系统 | macOS，安装完整 Xcode 及 iOS 模拟器运行时 |
+| App 系统 | iPadOS 17.0 及以上，仅支持 iPad |
+| 工程与 Scheme | `NuannuanFarm.xcodeproj` / `NuannuanFarm` |
+| Swift | 工程使用 Swift 5 语言模式 |
+| 自动检查 | Node.js 22 及以上，无需安装 npm 依赖 |
+| 模拟器回归 | 另需 Python 3、已启动的 iPad 模拟器 |
+
+历史构建和模拟器验收使用 Xcode 26.3、iPadOS 26.3，见 [iPad 验收记录](../docs/history/ipad-qa.md)。最低部署版本来自工程配置；iPadOS 17 和真实 iPad 尚无验收记录。
 
 ## 在 Xcode 中运行
 
-克隆仓库后打开工程：
+从仓库根目录打开工程：
 
 ```sh
-git clone https://github.com/Domn93/nuannuan-farm-ipad.git
-cd nuannuan-farm-ipad/iPadApp
-open NuannuanFarm.xcodeproj
+open iPadApp/NuannuanFarm.xcodeproj
 ```
 
-1. 用完整 Xcode 打开 `NuannuanFarm.xcodeproj`。
-2. 选择 `NuannuanFarm` Scheme，运行目标选一台 iPad 模拟器，点击 ▶︎。
-3. 安装到真机：连接 iPad，选择项目 → NuannuanFarm Target → Signing & Capabilities → Team，选择自己的 Apple 账户团队。按设备提示信任 Mac、启用开发者模式，目标选该 iPad，点击 ▶︎。
-4. 如果签名提示 Bundle Identifier 已被占用，把 `com.nuannuan.farm` 改为自己唯一的标识。改变标识会创建独立 App 和存档空间。
+选择 `NuannuanFarm` Scheme 和一台 iPad 模拟器，点击 Run。首页支持横竖屏；进入游戏后请求横屏，画布保持原画比例。窗口和全屏状态由系统管理。
 
-最低系统为 iPadOS 17，设备系列仅 iPad。免费 Personal Team 的设备签名通常七天到期，需要重新安装；TestFlight / App Store 发布需 Apple Developer Program 会员与实际分发审核。
+安装到真机时，在 Target → Signing & Capabilities 中选择自己的 Team，再选择连接的 iPad 运行。按设备提示启用开发者模式。若默认 Bundle Identifier `com.nuannuan.farm` 与自己的签名配置冲突，改成唯一标识；更改标识会使用独立的 App 和存档空间。
 
-已按较小款 **11 英寸 iPad Pro** 验收。游戏请横着拿 iPad；首页横竖屏都能显示。iPadOS 26 的窗口模式仍由系统管理，如果 App 出现在窗口中，用系统窗口菜单切换全屏。画面保持原比例，避免人物和房屋被拉宽。
+## 命令行构建
 
-## 命令行构建与检查
+以下命令均从仓库根目录运行：
 
 ```sh
-node tests/ipad-check.cjs
-node tests/audio-check.cjs
-./scripts/build.sh simulator
-./scripts/build.sh archive
-./scripts/regression.sh <已启动的 iPad 模拟器 UUID>
+./iPadApp/scripts/build.sh simulator
+./iPadApp/scripts/build.sh archive
 ```
 
-脚本优先使用 `/Applications/Xcode.app`，也支持目前「下载」目录里的 Xcode；可以通过 `DEVELOPER_DIR` 指定其他安装位置。不改变系统的 `xcode-select` 设置。
+| 命令 | 构建目标 | 产物 |
+| --- | --- | --- |
+| `simulator` | Debug，通用 iOS Simulator，关闭代码签名 | `iPadApp/build/DerivedData/Build/Products/Debug-iphonesimulator/NuannuanFarm.app` |
+| `archive` | Release，通用 iOS 真机，关闭代码签名 | `iPadApp/build/NuannuanFarm.xcarchive` |
 
-模拟器包：`build/DerivedData/Build/Products/Debug-iphonesimulator/NuannuanFarm.app`。
+归档命令用于检查真机架构和完整资源，生成未签名 `.xcarchive`。安装或分发需要选择有效签名团队，重新 Archive 并导出；此产物不能直接当作 IPA 安装。
 
-真机归档：`build/NuannuanFarm.xcarchive`。此命令产生**未签名归档**，可复核真机架构和资源；它不是能直接安装的 IPA。真机安装或分发请在 Xcode 选择有效团队后重新构建、Archive 和导出。
+脚本遵循已有 `DEVELOPER_DIR`；未设置时优先选择标准位置 `/Applications/Xcode.app`。`build.sh` 另检查用户下载目录中的 `Xcode.app`，`regression.sh` 则直接将该目录设为后备位置。因此，非标准安装应明确指定工具链，例如把下面的路径替换为实际 Xcode 安装位置：
 
-## 文件组织
+```sh
+export DEVELOPER_DIR="/path/to/Xcode.app/Contents/Developer"
+xcodebuild -version
+```
+
+脚本不会修改系统 `xcode-select` 设置。
+
+## 检查与回归
+
+```sh
+node iPadApp/tests/ipad-check.cjs
+node iPadApp/tests/audio-check.cjs
+```
+
+两项检查只读取仓库文件，分别验证玩法与存档边界、音频恢复的异步竞争。完整命令、用例生成、真实 WKWebView 回归和副作用说明见 [测试指南](../docs/testing.md)。
+
+`native-regression.cjs` 会生成并覆盖随包测试夹具；`regression.sh` 会构建、终止并安装模拟器 App、运行回归并更新报告。回归入口仅在 Debug 中启用，使用临时 WebKit 数据容器，不读写玩家生活存档。历史结果和截图见 [QA 索引](../QA.md)，每次改动后仍需重新验证。
+
+## App 行为
+
+- 原生首页、启动屏、玩法说明与关于页面；儿童文案和字体均随包提供。
+- `WKURLSchemeHandler` 通过 `farm://local/` 读取包内资源，支持图片的 Canvas 像素读取和音频范围请求。
+- 触屏点地面寻路；App 隐藏方向键与小跑按钮，钓鱼、秋千和宠物等动作按当前场景显示按钮。
+- 返回首页或进入后台时暂停游戏时间与声音；再次进入保留当前会话。
+- 小肚子随活动消耗，吃饭补充；干净度随脏污变化，洗澡后恢复。这两项跟随生活存档。
+
+## 存档
+
+App 每五秒尝试保存，返回首页和进入后台时也会尝试保存。做饭、洗澡、诊疗、睡眠等尚未完成的动作会延后保存，避免记录半途状态；完全关闭后从最近一次完整检查点恢复。
+
+存档包含背包与食物批次、日期天气、衣物鞋袜、位置、动物成长和喂养、宠物健康与药物疗程、朋友关系、盆栽、图鉴及冰箱和饭桌库存。临时动画与 NPC 的随机走动不序列化。
+
+生活存档以原子写入方式保存在 App 的 `Documents/farm-save.json`，没有云同步。卸载 App 会删除存档。Debug 回归报告写入同一 Documents 目录，但使用独立文件。
+
+## 文件组织与维护
 
 | 路径 | 用途 |
 | --- | --- |
-| `NuannuanFarm.xcodeproj` | 可直接打开的 Xcode 工程，共享运行 Scheme |
-| `NuannuanFarm/FarmRootView.swift` | 原生首页、玩法说明和关于页面 |
-| `NuannuanFarm/GameController.swift` | 本地加载、暂停、存档、错误恢复 |
-| `NuannuanFarm/LaunchScreen.storyboard` | 系统启动屏 |
+| `NuannuanFarm.xcodeproj` | Xcode 工程和共享 Scheme |
+| `NuannuanFarm/FarmRootView.swift` | 原生首页、说明和关于页面 |
+| `NuannuanFarm/GameController.swift` | 资源加载、生命周期、存档和 Debug 回归入口 |
+| `NuannuanFarm/FarmApp.swift` | App 入口和方向控制 |
 | `NuannuanFarm/Game` | 独立游戏和素材副本 |
-| `Game/css/ipad.css`、`Game/js/ipad*.js` | App 布局、触屏和生活存档 |
-| `scripts` | 可重复构建和原创图标生成 |
-| `tests` | App 存档、状态边界和资源完整性检查 |
+| `NuannuanFarm/Game/css/ipad.css`、`js/ipad*.js` | App 布局、触屏、状态和存档适配 |
+| `scripts` | 构建、回归和图标生成脚本 |
+| `tests` | Node 检查和 WKWebView 用例来源 |
+| `qa` | 历史报告与截图 |
 
-生活存档只保存在设备，不做云同步；卸载 App 会删除它。素材许可及来源保留在 `Game/assets` 原有 README 中。正式公开发布前仍需核对素材许可和 App Store 的作品要求。
+`Game` 是仓库根目录网页版的独立副本，构建不会自动同步两份代码。修改共同玩法时，明确说明变更覆盖哪一版，分别运行对应检查；不要在构建脚本中隐式复制或覆盖另一版。
 
-回归范围、修复记录和验证限制见 `QA.md`，真实 WebKit 测试结果保存在 `qa/regression-latest.json`。
-
-技术依据：[WKURLSchemeHandler 本地资源加载](https://developer.apple.com/documentation/webkit/wkurlschemehandler)、[SwiftUI UIViewRepresentable](https://developer.apple.com/documentation/swiftui/uiviewrepresentable)、[苹果设备签名说明](https://developer.apple.com/help/account/basics/about-your-developer-account)。
-
-仅在 Debug 包中，`xcrun simctl launch <模拟器 UUID> com.nuannuan.farm --regression --performance` 可以单独重复 18 组真实动画帧采样；此模式不读写玩家生活存档。结果写入模拟器 App 的 `Documents/farm-regression.json`，单独性能运行会替换该设备上的上一份测试报告，项目 `qa` 中保存的完整回归报告不受影响。
+开发约定见 [贡献指南](../CONTRIBUTING.md)。素材来源与许可见 [素材说明](NuannuanFarm/Game/assets/README.md) 和 [字体说明](NuannuanFarm/Game/fonts/README.md)。

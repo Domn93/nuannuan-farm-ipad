@@ -79,6 +79,10 @@ function makeContext() {
     ready=true; clock=100; busyUntil=0; sounds=false; soundOn=false;
     farmTime.hour=10; farmTime.day=0;
     farmVoices.nextSpeech=Infinity; farmVoices.nextCall=Infinity;
+    // 夹具时钟已越过首次如厕提醒；各业务场景自行准备要验证的生活状态。
+    toiletNeed.nextAt=Infinity;
+    // 这些行为检查从自家猫已接回农场的状态开始，寄养用例再主动办理入住。
+    cat.boarded=false; cat.scene='farm';
   `, context);
   return context;
 }
@@ -117,7 +121,8 @@ check('漏服一种药可补齐，药袋与冰箱不重复扣库存', `
     }
     function dose(index) {
       busyUntil=0;
-      if(location==='fridge') collectMedicineFromFridge('nuannuan',index);
+      // 取药会关闭冰箱；下一瓶仍须从真实入口重新打开。
+      if(location==='fridge') { openFridge(); collectMedicineFromFridge('nuannuan',index); }
       takeGameMedicine('nuannuan',index); clock+=2;
     }
     dose(0); dose(0); assert.equal(course.remaining[0],2);
@@ -133,6 +138,7 @@ check('漏服一种药可补齐，药袋与冰箱不重复扣库存', `
   player.x=places.fridge.x; player.y=places.fridge.y; busyUntil=0; openFridge();
   storeMedicineInFridge('nuannuan'); collectMedicineFromFridge('nuannuan',1);
   farmTime.day++; currentMedicineDay(nuannuanHealth.course);
+  openFridge();
   collectMedicineFromFridge('nuannuan',1);
   assert.equal(nuannuanHealth.course.remaining[1],2,'昨天未用的一瓶仍在药袋');
   takeGameMedicine('nuannuan',1);
@@ -233,6 +239,8 @@ check('医生和兽医的三日疗程与守卫', `
   assert.equal(petHealth.dog.course.taken.length,0,'睡着不能喂药');
   dog.sleeping=false;
   for (let day=6;day<9;day++) {
+    // 检查结束后狗会留在真实病床边，按当前位置走近再喂。
+    player.x=dog.x+20; player.y=dog.y+20;
     farmTime.day=day; dose('dog',0); dose('dog',1);
   }
   assert.equal(petHealth.dog.sick,false);
@@ -341,10 +349,15 @@ check('围栏与草地动物成长走动、骑马保持蓝衣服', `
 `);
 
 check('走到真实马旁上马、经门出栏，下马保留马的脚位', `
-  changeScene('farm'); farmTime.hour=9; player.x=1007; player.y=500;
-  for(const animal of animals) animal.nextWander=Infinity;
+  changeScene('farm'); farmTime.hour=9; player.x=650; player.y=775;
+  // 在可走草地发起上马；本例固定马的位置和门洞，单独验证完整骑乘路径。
+  for(const animal of animals) {
+    animal.nextWander=Infinity;
+    if(animal.cell!==3) animal.visitScene='barn';
+  }
+  rebuildGrid(); assert.ok(canWalk(player.x,player.y),'上马起点必须在可走地面');
   const horse=animals[3], original={...farmAnimalPosition(horse)};
-  mountHorse(); assert.equal(riding,false,'不能在家门口远程召马');
+  mountHorse(); assert.equal(riding,false,'不能从远处召马上马');
   requestAnimalTravel('horse','ride');
   for(let frame=0;frame<3000&&!riding;frame++) update(1/60);
   assert.ok(penGate.open,'从真实围栏门走进去');
@@ -386,21 +399,22 @@ check('动物正常闲逛后上马目标等待，起步路径使用当前动物�
 `);
 
 check('奶牛堵门时上马提示等待，让开后可重试，不传送马', `
-  let rngState=29;
-  Math.random=()=>((rngState=Math.imul(rngState,1664525)+1013904223|0)>>>0)/4294967296;
-  changeScene('farm'); farmTime.hour=9;
-  for(let frame=0;frame<900;frame++) update(1/60);
-  const horse=animals[3], original={...farmAnimalPosition(horse)};
+  changeScene('farm'); farmTime.hour=9; player.x=650; player.y=775;
+  const horse=animals[3], cow=animals[4], original={...farmAnimalPosition(horse)};
+  // 明确让奶牛占住真实门洞，保持它的站位直到本例主动让开。
+  for(const animal of animals) {
+    animal.nextWander=Infinity;
+    if(animal.cell!==3) animal.visitScene='barn';
+  }
+  cow.visitScene='farm'; cow.visitPosition={x:531,y:560}; cow.nextVisitWander=Infinity;
+  rebuildGrid();
   requestAnimalTravel('horse','ride');
   for(let frame=0;frame<3000&&!riding&&(route.length||pendingPlace||penGate.destination);frame++) update(1/60);
   assert.equal(riding,false,'实际门洞被占用时不能上马困在栏内');
   assert.equal(mountSession,null); assert.ok(distance(farmAnimalPosition(horse),original)<.01);
-  for(let attempt=0;attempt<30&&!riding;attempt++) {
-    for(let frame=0;frame<90;frame++) update(1/60);
-    requestAnimalTravel('horse','ride');
-    for(let frame=0;frame<3000&&!riding&&(route.length||pendingPlace||penGate.destination);frame++) update(1/60);
-  }
-  assert.ok(riding,'动物正常闲逛让开后能再次上马');
+  cow.visitScene='barn'; busyUntil=0; requestAnimalTravel('horse','ride');
+  for(let frame=0;frame<3000&&!riding;frame++) update(1/60);
+  assert.ok(riding,'奶牛让开门洞后能再次上马');
   clock=mountStarted+1; updateAnimalTravel(0);
   walkTo({x:690,y:700}); assert.ok(route.length);
 `);

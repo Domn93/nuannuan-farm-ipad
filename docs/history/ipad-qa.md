@@ -1,5 +1,7 @@
 # iPad 独立版验收
 
+> 本文归档 2026-10-05 的验收记录，保留当时范围、结果与限制。它不是当前提交的通过保证；重跑方式见 [测试指南](../testing.md)。文中的工程路径以 `iPadApp/` 为基准。
+
 日期：2026-10-05。设备：iPad Pro 11-inch (M5) 模拟器，iPadOS 26.3；构建工具：Xcode 26.3。最低部署版本 iPadOS 17 尚未进行旧系统实机验收。
 
 ## 构建和独立性
@@ -17,7 +19,7 @@
 
 最终真实 WebKit 功能回归：**70/70 通过**。
 
-`scripts/regression.sh` 在 App 的真实 WKWebView 中重新加载每个场景，执行实际玩法代码、DOM 事件与真实 Canvas 绘制。报告见 `qa/regression-latest.json`。测试使用临时网页容器，不读写玩家生活存档。它是带初始状态的功能回归，不是将所有长流程逐一用鼠标从头玩完。
+`scripts/regression.sh` 在 App 的真实 WKWebView 中重新加载每个场景，执行实际玩法代码、DOM 事件与真实 Canvas 绘制。报告见 [regression-latest.json](../../iPadApp/qa/regression-latest.json)。测试使用临时网页容器，不读写玩家生活存档。它是带初始状态的功能回归，不是将所有长流程逐一用鼠标从头玩完。
 
 | 功能 | 覆盖的关键行为 |
 | --- | --- |
@@ -38,7 +40,7 @@
 - 真实 WebKit 中，12 张地图各走六条分散路径，共 72 条、11,229 次实际 update。70 条走到本图终点，另两条按正常出口从岔路口进入森林、从聚会进入城市；逐帧检查脚位通行、宠物床约束及出口落点，全部通过。静态路线用例将随机动物移出测试地图，真实动物堵门、骑乘、牵行由原有专项场景单独覆盖。
 - 对可见 App 的实际 requestAnimationFrame 采样：12 张地图日景，农场另五种天气（含冬雪），以及室内夜景，共 18 组，每组预热 12 帧后采样 90 个间隔。约 60 FPS，帧间隔平均约 16.7ms、P95 约 17ms；更新和 Canvas 指令提交平均均在 1ms 以内。绘制调用耗时不等于 GPU 渲染时间，精确数值以 JSON 报告为准。
 - 完整回归中冰雹曾出现 53 FPS 的短样本，因此另外单独复测全部 18 组：59～60 FPS，P95 17～18ms；冰雹复测为 59 FPS。多云、冬雪、冰雹各有一个 40～45ms 帧间隔，未作操作系统级归因，不宣称零掉帧。
-- 完整数据在 `regression-latest.json` 的 `collisionCoverage` 与 `performanceSamples`，单独性能复测在 `performance-latest.json`，后者另记录最长帧间隔和慢帧数。这是 11 英寸模拟器中的短时采样，不代表真实 iPad 的长期运行性能。
+- 完整数据在 [regression-latest.json](../../iPadApp/qa/regression-latest.json) 的 `collisionCoverage` 与 `performanceSamples`，单独性能复测在 [performance-latest.json](../../iPadApp/qa/performance-latest.json)，后者另记录最长帧间隔和慢帧数。这是 11 英寸模拟器中的短时采样，不代表真实 iPad 的长期运行性能。
 - 左上角小状态条不遮住首页或活动按钮、不接收触摸；方向键和小跑按钮隐藏。额外检查活动面板不遮挡右上按钮、多行动作按钮与浮动提示不重叠。
 
 ## 直接操作模拟器
@@ -50,7 +52,7 @@
 - 重装保留数据及终止再启动后，首页显示保存日期，网页诊断 restored=true，位置、时间和背包从本机存档恢复。
 - 新版直接点击房间地面，人物绕过卧室与客厅家具，实际到达鞋架旁并打开鞋架；关闭后活动面板可打开，两个小状态仍完整显示。网页版未改动，玩家生活存档未用于回归夹具。
 
-截图保存在 `qa/home-11.jpg` 和 `qa/game-11.jpg`；补充状态证据保存在 `qa/ui-diagnostic.json`。
+截图保存在 [home-11.jpg](../../iPadApp/qa/home-11.jpg) 和 [game-11.jpg](../../iPadApp/qa/game-11.jpg)；补充状态证据保存在 [ui-diagnostic.json](../../iPadApp/qa/ui-diagnostic.json)。
 
 ## 本次修复
 
@@ -68,7 +70,7 @@
 
 ## 验证边界
 
-尚未连接用户的真实 iPad；Apple Team、设备签名、开发者模式和实机性能/扬声器验证需要连接设备后完成。签名操作步骤见 README。iPadOS 26 窗口模式由系统控制，进入游戏请横屏并切到系统全屏。
+尚未连接真实 iPad；Apple Team、设备签名、开发者模式和实机性能/扬声器验证需要连接设备后完成。签名操作步骤见 [iPad README](../../iPadApp/README.md)。iPadOS 26 窗口模式由系统控制，进入游戏请横屏并切到系统全屏。
 
 网页版旧测试的部分假设已落后于当前玩法，例如冰箱取物后关闭、布偶猫初始寄养状态、给药站位。独立版用例按当前行为调整初态和操作步骤；没有改动网页版，也没有把旧基线失败称为本次新增回归。
 

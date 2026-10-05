@@ -1,0 +1,39 @@
+name: 缺陷报告
+description: 报告可复现的玩法、画面、声音或构建问题
+title: "[Bug] "
+body:
+  - type: dropdown
+    id: version
+    attributes:
+      label: 版本
+      options:
+        - Web
+        - iPad
+        - 两个版本
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境与提交
+      description: 浏览器或 iPadOS / Xcode 版本、设备型号、提交 SHA（如有）
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 写明地图、动作顺序、菜单及必要的时间或天气条件
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图、错误或检查结果
+      description: 请去掉个人存档、设备标识、令牌和本机路径；安全问题按 SECURITY.md 私下报告
