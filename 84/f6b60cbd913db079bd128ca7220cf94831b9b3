@@ -1,0 +1,19 @@
+README.md
+  s_ff12b779412563::t_d92bbe2b274110 1-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "84f6b60cbd913db079bd128ca7220cf94831b9b3",
+  "prompts": {},
+  "sessions": {
+    "s_ff12b779412563": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a10a9f-5d30-7d92-8105-5f2094e8ea20",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "maqingze.1 <maqingze.1@jd.com>"
+    }
+  }
+}
