@@ -1,0 +1,589 @@
+/* 活动菜单、场景导航、衣柜与物品弹窗；窄屏布局放在对应规则之后。 */
+
+.travel-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 18px;
+  font-size: 12px;
+  color: #7e8b70;
+  flex-wrap: wrap;
+}
+.travel-bar button {
+  border: 1px solid #dce4ce;
+  background: #fdfcf5;
+  color: #62744e;
+  border-radius: 18px;
+  padding: 8px 16px;
+}
+.travel-bar button:hover {
+  background: #eaf0de;
+}
+.travel-bar button[hidden] {
+  display: none;
+}
+.travel-bar #scene-name {
+  font-weight: 600;
+  margin-right: 8px;
+}
+.travel-bar #room-hint {
+  margin-left: auto;
+  font-size: 11px;
+}
+.activity:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+@media (max-width: 600px) {
+  .travel-bar {
+    font-size: 11px;
+    gap: 7px;
+  }
+  .travel-bar button {
+    padding: 7px 10px;
+  }
+  #room-hint {
+    display: none;
+  }
+}
+.travel-bar #room-buttons {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.travel-bar #room-buttons[hidden] {
+  display: none;
+}
+.pump-swing {
+  bottom: 88px;
+  background: #78915b;
+  color: #fffbed;
+  touch-action: none;
+}
+.pump-swing:disabled {
+  opacity: 0.55;
+}
+.control-deck {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+  gap: 16px;
+  border-top: 1px solid #e0e5d6;
+  padding-top: 18px;
+}
+.control-group {
+  background: #fcfcf6;
+  border: 1px solid #e2e7d9;
+  border-radius: 14px;
+  padding: 15px;
+}
+.control-group[hidden] {
+  display: none;
+}
+.control-group h2 {
+  font-size: 13px;
+  color: #697b57;
+  margin: 0 0 12px;
+}
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.control-grid button {
+  border: 1px solid #e0e6d4;
+  border-radius: 9px;
+  background: #f6f8ee;
+  color: #5d714b;
+  padding: 11px 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.control-grid button:hover {
+  background: #e7eedb;
+}
+.control-grid button:disabled {
+  opacity: 0.45;
+}
+.pet-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.control-deck #room-buttons {
+  display: block;
+}
+.control-deck #room-buttons[hidden] {
+  display: none;
+}
+.inventory {
+  font-size: 12px;
+  font-weight: 500;
+  color: #7d856e;
+  border-left: 1px solid #dce3d0;
+  padding-left: 14px;
+}
+#bag-items {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+}
+#bag-items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 60px;
+  padding: 14px 4px;
+  border-bottom: 1px solid #e2e7d9;
+}
+#close-backpack {
+  position: absolute;
+  right: 14px;
+  top: 9px;
+  border: 0;
+  background: none;
+  font-size: 25px;
+  color: #7d8d66;
+}
+#eat-food,
+.friend-panel button {
+  border: 1px solid #dce4ce;
+  background: #f6f8ee;
+  color: #62744e;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+#eat-food:disabled {
+  opacity: 0.4;
+}
+.friend-panel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  max-width: 90%;
+  width: 370px;
+  padding: 25px;
+  background: #fffbedf5;
+  color: #62744e;
+  border: 1px solid #dce4ce;
+  border-radius: 18px;
+  box-shadow: 0 12px 50px #34442433;
+}
+.friend-panel[hidden] {
+  display: none;
+}
+.friend-panel p {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.friend-panel button {
+  margin: 5px;
+}
+.friend-panel #close-friend {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  background: none;
+  border: 0;
+  font-size: 23px;
+}
+#farm-clock {
+  font-size: 11px;
+  color: #7e8b70;
+}
+#time-of-day {
+  font: inherit;
+  color: #62744e;
+  border: 1px solid #dce4ce;
+  border-radius: 16px;
+  background: #fdfcf5;
+  padding: 6px 8px;
+}
+@media (min-width: 700px) {
+  .game-shell {
+    width: min(100%, calc((100vh - 390px) * 1.5));
+    min-width: 0;
+    min-height: 0;
+    max-height: none;
+  }
+  footer {
+    padding: 12px 2px 14px;
+  }
+  .travel-bar {
+    padding-bottom: 12px;
+  }
+  .control-deck {
+    padding-top: 14px;
+  }
+  .control-group {
+    padding: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .control-deck {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding-top: 12px;
+  }
+  .control-group {
+    padding: 12px;
+  }
+  .control-grid button {
+    font-size: 11px;
+    padding: 10px 3px;
+  }
+  .pet-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .pet-grid button:first-child {
+    grid-column: auto;
+  }
+  .inventory {
+    margin-left: auto;
+  }
+}
+#music-track {
+  font: inherit;
+  font-size: 12px;
+  color: #62744e;
+  border: 1px solid #dce4ce;
+  border-radius: 16px;
+  background: #fdfcf5;
+  padding: 7px 10px;
+  max-width: 140px;
+}
+.pet-play-buttons {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.pet-play-buttons button {
+  font-size: 11px;
+  padding: 7px 10px;
+  border: 1px solid #dce4ce;
+  background: #fdfcf5;
+  color: #62744e;
+  border-radius: 16px;
+}
+footer {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  #music-track {
+    max-width: 105px;
+    font-size: 10px;
+    padding: 6px;
+  }
+  .pet-play-buttons {
+    width: 100%;
+  }
+  .header-right {
+    gap: 4px;
+  }
+}
+.clothes-panel {
+  position: absolute;
+  right: 20px;
+  top: 66px;
+  z-index: 2;
+  padding: 18px;
+  background: #fffbedf2;
+  border: 1px solid #d9dfc9;
+  border-radius: 14px;
+  box-shadow: 0 8px 25px #34442422;
+  color: #657357;
+  max-width: 240px;
+  max-height: calc(100% - 90px);
+  overflow-y: auto;
+}
+.clothes-panel[hidden] {
+  display: none;
+}
+.clothes-panel p {
+  font-size: 11px;
+  margin: 8px 0 14px;
+  color: #8c947e;
+}
+.clothes-panel .wardrobe-divider {
+  margin: 15px 0 7px;
+  padding-top: 10px;
+  border-top: 1px solid #dce2cf;
+}
+.clothes-panel button {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border: 1px solid #dce2cf;
+  border-radius: 9px;
+  background: #fffdf6;
+  color: #657357;
+  font-size: 12px;
+}
+.clothes-panel button[aria-pressed='true'] {
+  background: #e5edd9;
+  border-color: #9caf82;
+}
+.collection-dialog {
+  width: min(640px, 92vw);
+  max-height: 85vh;
+  overflow: auto;
+  text-align: left;
+  padding: 28px;
+}
+.collection-dialog h3 {
+  font-size: 15px;
+  margin: 24px 0 12px;
+}
+.collection-dialog > button {
+  float: right;
+  background: none;
+  border: 0;
+  color: #6a795a;
+  font-size: 24px;
+}
+/* 文字操作按钮不是右上角的关闭图标，保持与其他操作一致的字号与点击区域。 */
+#fish-dialog > #close-fish,
+#alarm-dialog > #save-alarm {
+  float: none;
+  display: block;
+  margin: 16px 0 0 auto;
+  padding: 10px 16px;
+  border: 1px solid #dce3ce;
+  border-radius: 12px;
+  background: #f5f7ed;
+  color: #65764d;
+  font-size: 14px;
+}
+.guide-grid,
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.guide-grid article {
+  padding: 14px;
+  border: 1px solid #e0e7d6;
+  border-radius: 12px;
+  background: #f6f8ef;
+}
+.guide-grid article > span {
+  font-size: 27px;
+  margin-right: 10px;
+}
+.guide-grid article p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 8px 0 0;
+}
+.choice-grid button {
+  border: 1px solid #dce4ce;
+  border-radius: 10px;
+  background: #fafbf3;
+  color: #62744e;
+  padding: 12px;
+}
+.choice-grid button[aria-pressed='true'] {
+  background: #e4eed8;
+  border-color: #94ad7a;
+}
+#shoe-summary {
+  background: #f3f5e8;
+  padding: 12px;
+  border-radius: 10px;
+}
+@media (max-width: 600px) {
+  .clothes-panel {
+    top: 12px;
+    right: 12px;
+    padding: 12px;
+    max-width: 195px;
+    max-height: calc(100% - 24px);
+  }
+  .clothes-panel button {
+    padding: 7px;
+    font-size: 11px;
+  }
+}
+.activities-toggle {
+  display: block;
+  margin: 0 0 12px auto;
+  border: 1px solid #dce4ce;
+  border-radius: 18px;
+  background: #fdfcf5;
+  color: #62744e;
+  padding: 9px 18px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.play-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.play-layout:has(#activity-drawer:not([hidden])) {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+.play-area {
+  min-width: 0;
+}
+.play-area .game-shell {
+  width: min(100%, calc((100vh - 230px) * 1.5));
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+  margin-inline: auto;
+}
+.play-area footer {
+  margin-bottom: 0;
+}
+.play-area .scene-badge {
+  display: none;
+}
+#activity-drawer {
+  background: #fcfcf6;
+  border: 1px solid #e0e7d5;
+  border-radius: 18px;
+  padding: 18px;
+  max-height: calc(100vh - 150px);
+  overflow: auto;
+  position: sticky;
+  top: 20px;
+}
+#activity-drawer[hidden] {
+  display: none;
+}
+.drawer-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.drawer-heading h2 {
+  font-size: 16px;
+  margin: 0;
+}
+.drawer-heading button {
+  border: 0;
+  background: none;
+  color: #758565;
+  font-size: 26px;
+  cursor: pointer;
+}
+#activity-drawer .travel-bar {
+  gap: 9px;
+  padding-bottom: 16px;
+}
+#activity-drawer #scene-name {
+  width: 100%;
+}
+#activity-drawer #room-hint {
+  width: 100%;
+  margin: 0;
+}
+#activity-drawer .inventory {
+  border: 0;
+  padding: 0;
+}
+#activity-drawer .control-deck {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+#activity-drawer .control-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+#activity-drawer .control-grid button {
+  white-space: normal;
+  line-height: 1.6;
+  padding: 10px 6px;
+}
+#activity-drawer .control-group {
+  padding: 12px;
+}
+.play-area .toast {
+  bottom: 14px;
+  max-width: 70%;
+  white-space: normal;
+  text-align: center;
+  font-size: 12px;
+  pointer-events: none;
+}
+.play-area .interact {
+  bottom: 74px;
+  max-width: 72%;
+  white-space: normal;
+}
+.play-area .interaction-actions {
+  position: absolute;
+  bottom: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  overflow-x: auto;
+  z-index: 2;
+}
+.play-area .interaction-actions .interact {
+  position: static;
+  transform: none;
+  max-width: none;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.play-area .pump-swing {
+  bottom: 130px;
+}
+.play-area .clothes-panel {
+  top: 16px;
+  right: 16px;
+  max-height: calc(100% - 170px);
+  overflow: auto;
+}
+@media (max-width: 850px) {
+  .play-layout:has(#activity-drawer:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr) 270px;
+  }
+  .play-layout {
+    gap: 14px;
+  }
+  #activity-drawer {
+    padding: 12px;
+  }
+  .play-area .toast {
+    font-size: 10px;
+  }
+  .play-area .interact {
+    font-size: 11px;
+    padding: 8px 12px;
+  }
+}
+@media (max-width: 650px) {
+  .play-layout:has(#activity-drawer:not([hidden])) {
+    grid-template-columns: 1fr;
+  }
+  #activity-drawer {
+    position: static;
+    max-height: 60vh;
+  }
+  .play-area .toast {
+    bottom: 10px;
+    max-width: 72%;
+  }
+  .play-area .interact {
+    bottom: 65px;
+  }
+  .play-area .interaction-actions {
+    bottom: 65px;
+  }
+  .play-area .pump-swing {
+    bottom: 106px;
+  }
+  .play-area .clothes-panel {
+    max-height: calc(100% - 115px);
+    padding: 10px;
+    max-width: 185px;
+  }
+}

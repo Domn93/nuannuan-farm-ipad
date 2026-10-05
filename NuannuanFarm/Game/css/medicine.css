@@ -1,0 +1,61 @@
+#medicine-dialog .medicine-pouch-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+#medicine-dialog .medicine-pouch-heading img {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+}
+#medicine-dialog .medicine-pouch-heading h2 {
+  margin-bottom: 4px;
+}
+#bag-items .medicine-bag-item > span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#bag-items .medicine-bag-details small {
+  display: block;
+  margin-top: 4px;
+}
+#bag-items .medicine-bag-item img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+#bag-items .medicine-bag-item button {
+  align-self: center;
+  border: 1px solid #cdd9bd;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: #fffdf6;
+  color: #586c43;
+  cursor: pointer;
+}
+#medicine-list {
+  list-style: none;
+  padding: 0;
+}
+#medicine-list li {
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px solid #dde5d1;
+  border-radius: 14px;
+  background: #f7f8ef;
+}
+#medicine-list button {
+  margin: 4px 8px 4px 0;
+  padding: 9px 12px;
+  border: 1px solid #cdd9bd;
+  border-radius: 12px;
+  background: #fffdf6;
+  color: #586c43;
+  font: inherit;
+  cursor: pointer;
+}
+#medicine-list button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

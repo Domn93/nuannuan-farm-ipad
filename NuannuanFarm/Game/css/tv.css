@@ -1,0 +1,53 @@
+#tv-dialog {
+  max-width: 590px;
+}
+
+#tv-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 16px 0;
+  border: 8px solid #5e665a;
+  border-radius: 18px;
+  background: #27375f;
+  box-shadow: 0 10px 25px #2c3d3d2b;
+}
+
+#tv-title {
+  display: block;
+  color: #425f54;
+  font-size: 18px;
+}
+
+#tv-description {
+  margin: 4px 0 16px;
+}
+
+.tv-programs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 8px;
+}
+
+.tv-programs button,
+#tv-dialog > #tv-power {
+  border: 1px solid #cbd9cd;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #f6f8ee;
+  color: #4c6b58;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tv-programs button[aria-pressed='true'] {
+  border-color: #76a69f;
+  background: #e3f3ed;
+  font-weight: 600;
+}
+
+#tv-dialog > #tv-power {
+  float: none;
+  display: block;
+  margin: 18px 0 0 auto;
+}

@@ -1,0 +1,737 @@
+{
+  "completed": 70,
+  "finished": true,
+  "results": [
+    {
+      "durationMs": 865,
+      "evidence": null,
+      "name": "12 张地图的入口、互动路径和逐帧运行",
+      "passed": true
+    },
+    {
+      "durationMs": 21,
+      "evidence": null,
+      "name": "漏服一种药可补齐，药袋与冰箱不重复扣库存",
+      "passed": true
+    },
+    {
+      "durationMs": 11,
+      "evidence": null,
+      "name": "食材保持品类，蔬菜饭不能凭空制作",
+      "passed": true
+    },
+    {
+      "durationMs": 24,
+      "evidence": null,
+      "name": "外出返回先走到出口，再经过岔路口回农场",
+      "passed": true
+    },
+    {
+      "durationMs": 4,
+      "evidence": null,
+      "name": "骑马不能进入人物可走的窄楼梯，广场仍可通行",
+      "passed": true
+    },
+    {
+      "durationMs": 46,
+      "evidence": null,
+      "name": "去右村舍的寻路不会被路过的城市出口抢走",
+      "passed": true
+    },
+    {
+      "durationMs": 10,
+      "evidence": null,
+      "name": "医生和兽医的三日疗程与守卫",
+      "passed": true
+    },
+    {
+      "durationMs": 9,
+      "evidence": null,
+      "name": "健康的人和猫接受检查时不会被强制变成病人",
+      "passed": true
+    },
+    {
+      "durationMs": 7,
+      "evidence": null,
+      "name": "冰箱数量守恒、独立批次保鲜和烹饪退款",
+      "passed": true
+    },
+    {
+      "durationMs": 109,
+      "evidence": null,
+      "name": "围栏与草地动物成长走动、骑马保持蓝衣服",
+      "passed": true
+    },
+    {
+      "durationMs": 137,
+      "evidence": null,
+      "name": "走到真实马旁上马、经门出栏，下马保留马的脚位",
+      "passed": true
+    },
+    {
+      "durationMs": 244,
+      "evidence": null,
+      "name": "动物正常闲逛后上马目标等待，起步路径使用当前动物位置",
+      "passed": true
+    },
+    {
+      "durationMs": 92,
+      "evidence": null,
+      "name": "奶牛堵门时上马提示等待，让开后可重试，不传送马",
+      "passed": true
+    },
+    {
+      "durationMs": 250,
+      "evidence": null,
+      "name": "三套外出服骑乘、钓鱼、秋千保持衣服，停马四蹄落地",
+      "passed": true
+    },
+    {
+      "durationMs": 20,
+      "evidence": null,
+      "name": "钓鱼早拉、漏咬和成功收线的库存一致",
+      "passed": true
+    },
+    {
+      "durationMs": 214,
+      "evidence": null,
+      "name": "三种菜单不抢占午睡、窗帘和吃饭，共九种场景",
+      "passed": true
+    },
+    {
+      "durationMs": 80,
+      "evidence": null,
+      "name": "药盒不打断六个烹饪阶段，取消原料保留鲜度和来源",
+      "passed": true
+    },
+    {
+      "durationMs": 26,
+      "evidence": null,
+      "name": "抚摸结束和中断清掉自己的互动点，不释放其他动作",
+      "passed": true
+    },
+    {
+      "durationMs": 11,
+      "evidence": null,
+      "name": "牵走正在吃饭的狗恢复步行，未吃完的粮不扣除",
+      "passed": true
+    },
+    {
+      "durationMs": 38,
+      "evidence": null,
+      "name": "喂食不移动异图宠物，马必须在本图才能骑乘",
+      "passed": true
+    },
+    {
+      "durationMs": 5,
+      "evidence": null,
+      "name": "手动带回养殖场要求有可用的引导宠物",
+      "passed": true
+    },
+    {
+      "durationMs": 3,
+      "evidence": null,
+      "name": "模态菜单阻止游戏输入，异图宠物不拦截地面点击",
+      "passed": true
+    },
+    {
+      "durationMs": 3,
+      "evidence": null,
+      "name": "宠物不在场时不闲聊邀请，睡着的猫不被说成散步",
+      "passed": true
+    },
+    {
+      "durationMs": 59,
+      "evidence": null,
+      "name": "宠物点击尺寸与步行、进食、闭眼睡姿和跳跃脚位一致",
+      "passed": true
+    },
+    {
+      "durationMs": 7,
+      "evidence": null,
+      "name": "宠物洗澡短手臂触到近侧毛发，只画一个宠物身体",
+      "passed": true
+    },
+    {
+      "durationMs": 5,
+      "evidence": null,
+      "name": "附近互动选最近点，跳过异图宠物和不在场的马",
+      "passed": true
+    },
+    {
+      "durationMs": 7,
+      "evidence": null,
+      "name": "点击炉柜和锅柄准确到炉灶，旧水槽区域不触发做饭",
+      "passed": true
+    },
+    {
+      "durationMs": 12,
+      "evidence": null,
+      "name": "鞋架下部仍可点击且不能穿行，旁边挑鞋站位可达",
+      "passed": true
+    },
+    {
+      "durationMs": 35,
+      "evidence": null,
+      "name": "入屋站位和角色路线避开宠物床，猫狗仍能回窝",
+      "passed": true
+    },
+    {
+      "durationMs": 87,
+      "evidence": null,
+      "name": "公共入口门固定门槛，前后两层仅绘制一次门板与转场",
+      "passed": true
+    },
+    {
+      "durationMs": 28,
+      "evidence": null,
+      "name": "朋友分散漫步且聊天时停下，不在同一横带拥挤",
+      "passed": true
+    },
+    {
+      "durationMs": 18,
+      "evidence": null,
+      "name": "常驻猫全部使用独立橘猫贴图，玩家布偶猫不替换",
+      "passed": true
+    },
+    {
+      "durationMs": 26,
+      "evidence": null,
+      "name": "猫狗同时寄养、离开后留守、回来按原身份接走",
+      "passed": true
+    },
+    {
+      "durationMs": 6,
+      "evidence": null,
+      "name": "卧室里夜间可立即松绳，不把病狗送医入口锁死",
+      "passed": true
+    },
+    {
+      "durationMs": 32,
+      "evidence": null,
+      "name": "从客厅走到卧室给睡着的狗喂两种药，喂完再休息",
+      "passed": true
+    },
+    {
+      "durationMs": 39,
+      "evidence": null,
+      "name": "取消走近、异图与寄养不能消耗药，冰箱已取药只喂一次",
+      "passed": true
+    },
+    {
+      "durationMs": 9,
+      "evidence": null,
+      "name": "自动避雨不抢牵绳或喂药中的狗，主动牵狗可中断引导",
+      "passed": true
+    },
+    {
+      "durationMs": 13,
+      "evidence": null,
+      "name": "存档保留物品、日期、食物鲜度、成长和药物疗程",
+      "passed": true
+    },
+    {
+      "durationMs": 0,
+      "evidence": null,
+      "name": "做饭、睡觉或诊疗时不提交半途存档",
+      "passed": true
+    },
+    {
+      "durationMs": 1,
+      "evidence": null,
+      "name": "快照与运行对象分离",
+      "passed": true
+    },
+    {
+      "durationMs": 0,
+      "evidence": null,
+      "name": "坏存档不会修改当前农场",
+      "passed": true
+    },
+    {
+      "durationMs": 18,
+      "evidence": null,
+      "name": "室内场景、服装、宠物和围栏恢复",
+      "passed": true
+    },
+    {
+      "durationMs": 10,
+      "evidence": null,
+      "name": "Infinity 计时器不会在恢复后立即触发",
+      "passed": true
+    },
+    {
+      "durationMs": 20,
+      "evidence": null,
+      "name": "首页暂停时游戏时钟保持不变",
+      "passed": true
+    },
+    {
+      "durationMs": 9,
+      "evidence": null,
+      "name": "抱猫和牵狗在恢复后保持关联",
+      "passed": true
+    },
+    {
+      "durationMs": 1,
+      "evidence": null,
+      "name": "小肚子随活动消耗，睡觉较慢，空肚子不会中断动作",
+      "passed": true
+    },
+    {
+      "durationMs": 1,
+      "evidence": null,
+      "name": "背包吃饭面包水果补饱腹，空背包和坏食物不能凭空补充",
+      "passed": true
+    },
+    {
+      "durationMs": 7,
+      "evidence": null,
+      "name": "饭桌吃完才补饱腹，取消不补，五类食物按份生效",
+      "passed": true
+    },
+    {
+      "durationMs": 66,
+      "evidence": null,
+      "name": "小肚子存档恢复，旧存档正常起步，坏数值不污染状态",
+      "passed": true
+    },
+    {
+      "durationMs": 8,
+      "evidence": null,
+      "name": "干净条与脏污一致，没洗完不能变干净，洗完恢复满条",
+      "passed": true
+    },
+    {
+      "durationMs": 30,
+      "evidence": null,
+      "name": "小状态条不抢触摸，与首页和右侧按钮不重叠",
+      "passed": true
+    },
+    {
+      "durationMs": 985,
+      "evidence": {
+        "collisionCoverage": [
+          {
+            "arrivals": 6,
+            "frames": 1117,
+            "map": "farm",
+            "paths": 6,
+            "transitions": []
+          },
+          {
+            "arrivals": 6,
+            "frames": 1126,
+            "map": "house",
+            "paths": 6,
+            "transitions": []
+          },
+          {
+            "arrivals": 6,
+            "frames": 842,
+            "map": "barn",
+            "paths": 6,
+            "transitions": []
+          },
+          {
+            "arrivals": 5,
+            "frames": 1114,
+            "map": "junction",
+            "paths": 6,
+            "transitions": [
+              "forest"
+            ]
+          },
+          {
+            "arrivals": 6,
+            "frames": 1292,
+            "map": "forest",
+            "paths": 6,
+            "transitions": []
+          },
+          {
+            "arrivals": 6,
+            "frames": 902,
+            "map": "city",
+            "paths": 6,
+            "transitions": []
+          },
+          {
+            "arrivals": 5,
+            "frames": 1131,
+            "map": "friends",
+            "paths": 6,
+            "transitions": [
+              "city"
+            ]
+          },
+          {
+            "arrivals": 6,
+            "frames": 685,
+            "map": "hospital",
+            "paths": 6,
+            "transitions": []
+          },
+          {
+            "arrivals": 6,
+            "frames": 685,
+            "map": "petHospital",
+            "paths": 6,
+            "transitions": []
+          },
+          {
+            "arrivals": 6,
+            "frames": 658,
+            "map": "bakery",
+            "paths": 6,
+            "transitions": []
+          },
+          {
+            "arrivals": 6,
+            "frames": 954,
+            "map": "villageHouse",
+            "paths": 6,
+            "transitions": []
+          },
+          {
+            "arrivals": 6,
+            "frames": 723,
+            "map": "boardingHouse",
+            "paths": 6,
+            "transitions": []
+          }
+        ]
+      },
+      "name": "12 张地图逐帧走路碰撞、到达与正常出口转场",
+      "passed": true
+    },
+    {
+      "durationMs": 32096,
+      "evidence": {
+        "performanceSamples": [
+          {
+            "drawMs": 0.32,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "farm",
+            "season": 0,
+            "updateMs": 0.37,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.32,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "house",
+            "season": 0,
+            "updateMs": 0.18,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.32,
+            "fps": 60,
+            "frameMs": 16.68,
+            "frameP95Ms": 18,
+            "frames": 90,
+            "hour": 10,
+            "map": "barn",
+            "season": 0,
+            "updateMs": 0.27,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.27,
+            "fps": 60,
+            "frameMs": 16.68,
+            "frameP95Ms": 18,
+            "frames": 90,
+            "hour": 10,
+            "map": "junction",
+            "season": 0,
+            "updateMs": 0.29,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.31,
+            "fps": 60,
+            "frameMs": 16.68,
+            "frameP95Ms": 18,
+            "frames": 90,
+            "hour": 10,
+            "map": "forest",
+            "season": 0,
+            "updateMs": 0.27,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.37,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "city",
+            "season": 0,
+            "updateMs": 0.21,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.34,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "friends",
+            "season": 0,
+            "updateMs": 0.3,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.27,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 18,
+            "frames": 90,
+            "hour": 10,
+            "map": "hospital",
+            "season": 0,
+            "updateMs": 0.16,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.29,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "petHospital",
+            "season": 0,
+            "updateMs": 0.29,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.32,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "bakery",
+            "season": 0,
+            "updateMs": 0.27,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.26,
+            "fps": 60,
+            "frameMs": 16.68,
+            "frameP95Ms": 18,
+            "frames": 90,
+            "hour": 10,
+            "map": "villageHouse",
+            "season": 0,
+            "updateMs": 0.32,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.32,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "boardingHouse",
+            "season": 0,
+            "updateMs": 0.27,
+            "weather": "sunny"
+          },
+          {
+            "drawMs": 0.63,
+            "fps": 59,
+            "frameMs": 16.86,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "farm",
+            "season": 0,
+            "updateMs": 0.24,
+            "weather": "cloudy"
+          },
+          {
+            "drawMs": 0.37,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "farm",
+            "season": 0,
+            "updateMs": 0.59,
+            "weather": "rain"
+          },
+          {
+            "drawMs": 0.64,
+            "fps": 59,
+            "frameMs": 16.84,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "farm",
+            "season": 0,
+            "updateMs": 0.31,
+            "weather": "wind"
+          },
+          {
+            "drawMs": 0.27,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "farm",
+            "season": 3,
+            "updateMs": 0.43,
+            "weather": "snow"
+          },
+          {
+            "drawMs": 0.53,
+            "fps": 53,
+            "frameMs": 18.7,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 10,
+            "map": "farm",
+            "season": 0,
+            "updateMs": 0.44,
+            "weather": "hail"
+          },
+          {
+            "drawMs": 0.37,
+            "fps": 60,
+            "frameMs": 16.67,
+            "frameP95Ms": 17,
+            "frames": 90,
+            "hour": 21,
+            "map": "house",
+            "season": 0,
+            "updateMs": 0.07,
+            "weather": "sunny"
+          }
+        ]
+      },
+      "name": "12 张地图实际动画帧与更新绘制耗时采样",
+      "passed": true
+    },
+    {
+      "durationMs": 320,
+      "evidence": null,
+      "name": "全部鞋袜选项真实点击、换装完成和像素读取",
+      "passed": true
+    },
+    {
+      "durationMs": 277,
+      "evidence": null,
+      "name": "五套衣服实际换装，四床被子步行铺好，取消不更换",
+      "passed": true
+    },
+    {
+      "durationMs": 34,
+      "evidence": null,
+      "name": "蘑菇树叶采集、背包吃饭和图鉴记录独立于消耗",
+      "passed": true
+    },
+    {
+      "durationMs": 2,
+      "evidence": null,
+      "name": "交友送花和分享食物守恒，不重复增加友谊奖励",
+      "passed": true
+    },
+    {
+      "durationMs": 26,
+      "evidence": null,
+      "name": "晴夜流星只能许愿一次，雨天和进入室内清理",
+      "passed": true
+    },
+    {
+      "durationMs": 9,
+      "evidence": null,
+      "name": "活动列表翻页到小伙伴，往上翻返回且不关闭菜单",
+      "passed": true
+    },
+    {
+      "durationMs": 6613,
+      "evidence": null,
+      "name": "四季、六种天气和全部地图可实际绘制并读取像素",
+      "passed": true
+    },
+    {
+      "durationMs": 172,
+      "evidence": null,
+      "name": "盆栽浇水和换新苗完成后可以存档",
+      "passed": true
+    },
+    {
+      "durationMs": 184,
+      "evidence": null,
+      "name": "洗澡各阶段和穿浴袍收尾，方向退出不丢衣服",
+      "passed": true
+    },
+    {
+      "durationMs": 168,
+      "evidence": null,
+      "name": "厕所使用、冲水和紧急时限正常收尾",
+      "passed": true
+    },
+    {
+      "durationMs": 261,
+      "evidence": null,
+      "name": "全部电视节目、换台和关闭使用实际预览画布",
+      "passed": true
+    },
+    {
+      "durationMs": 8,
+      "evidence": null,
+      "name": "集市、面包店打包取消不扣钱，购买和领取不重复",
+      "passed": true
+    },
+    {
+      "durationMs": 40,
+      "evidence": null,
+      "name": "森林捕虫、伐木、三种动物互动和结束按钮守恒",
+      "passed": true
+    },
+    {
+      "durationMs": 207,
+      "evidence": null,
+      "name": "空调和阳台门、窗帘、闹钟可触摸选择",
+      "passed": true
+    },
+    {
+      "durationMs": 9,
+      "evidence": null,
+      "name": "冰箱全部食品存取的数量守恒，关闭按钮正常",
+      "passed": true
+    },
+    {
+      "durationMs": 10,
+      "evidence": null,
+      "name": "触屏结束取消喂食路线，不在原地凭空添粮",
+      "passed": true
+    },
+    {
+      "durationMs": 54,
+      "evidence": null,
+      "name": "城市交友、动物感情、电视和采集间隔在重载后保持",
+      "passed": true
+    }
+  ],
+  "total": 70
+}
